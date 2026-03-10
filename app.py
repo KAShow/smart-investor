@@ -11,7 +11,8 @@ from flask import Flask, render_template, request, jsonify, Response, send_file
 from dotenv import load_dotenv
 from tenacity import RetryError
 from agents import (MarketLogicAgent, FinancialAgent, CompetitiveAgent,
-                    LegalAgent, TechnicalAgent, SynthesizerAgent, SwotAgent, ActionPlanAgent)
+                    LegalAgent, TechnicalAgent, BrokerageModelsAgent,
+                    SynthesizerAgent, SwotAgent, ActionPlanAgent)
 from database import (init_db, save_analysis, get_all_analyses, get_analysis,
                       delete_analysis, get_analysis_by_token, rate_analysis, get_dashboard_stats,
                       get_bahrain_data_status)
@@ -30,6 +31,7 @@ financial_agent = FinancialAgent()
 competitive_agent = CompetitiveAgent()
 legal_agent = LegalAgent()
 technical_agent = TechnicalAgent()
+brokerage_models_agent = BrokerageModelsAgent()
 synthesizer = SynthesizerAgent()
 swot_agent = SwotAgent()
 action_plan_agent = ActionPlanAgent()
@@ -39,16 +41,12 @@ bahrain_service = BahrainDataService()
 init_db()
 
 
-def validate_input(idea, api_key):
+def validate_input(sector, api_key):
     """التحقق من صحة المدخلات وإرجاع رسالة خطأ أو None"""
     if not api_key:
         return 'الرجاء إدخال مفتاح API'
-    if not idea:
-        return 'الرجاء إدخال الفكرة الاستثمارية'
-    if len(idea) < 10:
-        return 'الفكرة قصيرة جداً - الرجاء إدخال وصف لا يقل عن 10 أحرف'
-    if len(idea) > 5000:
-        return 'الفكرة طويلة جداً - الحد الأقصى 5000 حرف'
+    if not sector or sector not in SECTORS:
+        return 'الرجاء اختيار قطاع صالح لدراسة الوساطة'
     return None
 
 
@@ -67,16 +65,22 @@ def shared_view(token):
 
 @app.route('/analyze-stream')
 def analyze_stream():
-    idea = request.args.get('idea', '').strip()
+    sector = request.args.get('sector', '').strip()
     api_key = request.args.get('api_key', '').strip() or os.environ.get('OPENAI_API_KEY', '')
     provider = request.args.get('provider', 'openai').strip()
     model = request.args.get('model', '').strip() or None
-    sector = request.args.get('sector', 'general').strip()
     budget = request.args.get('budget', '').strip()
+    notes = request.args.get('notes', '').strip()
 
-    error = validate_input(idea, api_key)
+    error = validate_input(sector, api_key)
     if error:
         return jsonify({'error': error}), 400
+
+    # توليد نص الدراسة تلقائياً بناءً على القطاع
+    sector_name = SECTORS[sector]['name_ar']
+    idea = f"دراسة جدوى إنشاء شركة وساطة تجارية في قطاع {sector_name} في مملكة البحرين"
+    if notes:
+        idea += f"\n\nملاحظات إضافية: {notes}"
 
     def generate():
         event_queue = queue.Queue()
@@ -95,8 +99,8 @@ def analyze_stream():
 ** المستثمر يملك أقل من {budget_formatted} دينار بحريني **
 - يجب أن يلتزم تحليلك بهذه الميزانية المحددة ({budget_formatted} د.ب)
 - لا تقترح أي خطوة أو استثمار يتطلب رأس مال أعلى من {budget_formatted} د.ب
-- قيّم الفكرة من منظور هذه الميزانية: هل هي كافية؟ هل تحتاج تعديل؟
-- إذا كانت الميزانية غير كافية للفكرة، وضّح ذلك بصراحة واقترح بديلاً أصغر
+- قيّم جدوى الوساطة من منظور هذه الميزانية: هل هي كافية؟ هل تحتاج تعديل؟
+- إذا كانت الميزانية غير كافية لنموذج وساطة معين، وضّح ذلك بصراحة واقترح بديلاً أصغر
 - اذكر تكاليف تقديرية واقعية بالدينار البحريني ضمن حدود الميزانية"""
             except ValueError:
                 pass
@@ -124,13 +128,14 @@ def analyze_stream():
                     logger.error(f"❌ التتبع:\n{traceback.format_exc()}")
                     event_queue.put((name, json.dumps({"title": "خطأ", "summary": f"{err_type}: {err_msg}", "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)))
 
-            # تشغيل الوكلاء الخمسة بالتوازي مع بيانات السوق البحريني
+            # تشغيل الوكلاء الستة بالتوازي مع بيانات السوق البحريني
             await asyncio.gather(
                 run_agent("market_analysis", market_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
                 run_agent("financial_analysis", financial_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
                 run_agent("competitive_analysis", competitive_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
                 run_agent("legal_analysis", legal_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
                 run_agent("technical_analysis", technical_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
+                run_agent("brokerage_models_analysis", brokerage_models_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
             )
             event_queue.put(("agents_done", None))
 
@@ -141,7 +146,7 @@ def analyze_stream():
         thread.start()
 
         results = {}
-        # انتظار نتائج الوكلاء الخمسة
+        # انتظار نتائج الوكلاء الستة
         while True:
             name, data = event_queue.get()
             if name == "agents_done":
@@ -161,6 +166,7 @@ def analyze_stream():
                     competitive_analysis=results.get('competitive_analysis', ''),
                     legal_analysis=results.get('legal_analysis', ''),
                     technical_analysis=results.get('technical_analysis', ''),
+                    brokerage_models_analysis=results.get('brokerage_models_analysis', ''),
                     api_key=api_key,
                     provider=provider,
                     model_override=model
@@ -180,7 +186,7 @@ def analyze_stream():
         status, verdict = synth_queue.get()
 
         if status == "error":
-            verdict = json.dumps({"summary": verdict, "consensus": [], "conflicts": [], "verdict": "خطأ", "overall_score": 0, "score_justification": "", "advice": []}, ensure_ascii=False)
+            verdict = json.dumps({"summary": verdict, "consensus": [], "conflicts": [], "verdict": "خطأ", "overall_score": 0, "score_justification": "", "recommended_model": "", "model_justification": "", "advice": []}, ensure_ascii=False)
 
         yield f"event: final_verdict\ndata: {json.dumps({'content': verdict}, ensure_ascii=False)}\n\n"
 
@@ -217,6 +223,7 @@ def analyze_stream():
             competitive_analysis=results.get('competitive_analysis', ''),
             legal_analysis=results.get('legal_analysis', ''),
             technical_analysis=results.get('technical_analysis', ''),
+            brokerage_models_analysis=results.get('brokerage_models_analysis', ''),
             swot_analysis=swot_result,
             action_plan=plan_result,
             final_verdict=verdict,
@@ -311,6 +318,37 @@ def _parse_agent_analysis(json_str):
         return str(json_str)[:500]
 
 
+def _parse_brokerage_models(json_str):
+    """تحويل JSON تحليل نماذج الوساطة إلى نص مقروء."""
+    if not json_str:
+        return "غير متوفر"
+    try:
+        data = json.loads(json_str) if isinstance(json_str, str) else json_str
+        parts = []
+        if data.get('title'):
+            parts.append(f"العنوان: {data['title']}")
+        if data.get('summary'):
+            parts.append(f"الملخص: {data['summary']}")
+        if data.get('models'):
+            parts.append("النماذج:")
+            for m in data['models']:
+                name = m.get('name', '')
+                score = m.get('score', 0)
+                fit = m.get('fit_for_bahrain', '')
+                parts.append(f"  - {name}: {score}/10 (ملاءمة: {fit})")
+                if m.get('pros'):
+                    parts.append(f"    إيجابيات: {', '.join(m['pros'][:3])}")
+                if m.get('cons'):
+                    parts.append(f"    سلبيات: {', '.join(m['cons'][:2])}")
+        if data.get('recommended_model'):
+            parts.append(f"النموذج الموصى به: {data['recommended_model']}")
+        if data.get('recommendation_reason'):
+            parts.append(f"سبب التوصية: {data['recommendation_reason']}")
+        return "\n".join(parts) if parts else json_str[:500]
+    except (json.JSONDecodeError, TypeError, AttributeError):
+        return str(json_str)[:500]
+
+
 def _parse_verdict(json_str):
     """تحويل JSON الحكم النهائي إلى نص مقروء."""
     if not json_str:
@@ -326,6 +364,10 @@ def _parse_verdict(json_str):
             parts.append(f"الملخص: {data['summary']}")
         if data.get('score_justification'):
             parts.append(f"تبرير التقييم: {data['score_justification']}")
+        if data.get('recommended_model'):
+            parts.append(f"النموذج الموصى به: {data['recommended_model']}")
+        if data.get('model_justification'):
+            parts.append(f"تبرير النموذج: {data['model_justification']}")
         if data.get('consensus'):
             parts.append("نقاط التوافق:")
             for i, c in enumerate(data['consensus'], 1):
@@ -398,31 +440,34 @@ def _parse_action_plan(json_str):
 def _build_followup_context(analysis):
     """بناء system prompt احترافي لأسئلة المتابعة مع تحويل التحليلات لنص مقروء."""
     # جلب بيانات السوق البحريني حسب القطاع المحفوظ مع التحليل
-    analysis_sector = analysis.get('sector', 'general')
+    analysis_sector = analysis.get('sector', 'food_hospitality')
     bahrain_context = bahrain_service.build_market_context(sector=analysis_sector)
 
-    return f"""أنت مستشار استثماري أول ومحلل استراتيجي متخصص في السوق البحريني. لديك خبرة عميقة في تحليل الأسواق، التمويل، التقنية، والتنظيمات القانونية في مملكة البحرين.
+    return f"""أنت مستشار متخصص في الوساطة التجارية ومحلل استراتيجي متخصص في السوق البحريني. لديك خبرة عميقة في نماذج الوساطة، المنصات التجارية، والتنظيمات القانونية في مملكة البحرين.
 
-تم إجراء تحليل شامل للفكرة الاستثمارية التالية من قبل فريق من المحللين المتخصصين. استخدم هذه التحليلات وبيانات السوق البحريني الحقيقية للإجابة على أسئلة المستخدم.
+تم إجراء دراسة جدوى شاملة للوساطة التجارية في القطاع المحدد من قبل فريق من المحللين المتخصصين. استخدم هذه التحليلات وبيانات السوق البحريني الحقيقية للإجابة على أسئلة المستخدم.
 {bahrain_context}
 
-═══ الفكرة الاستثمارية ═══
+═══ موضوع الدراسة ═══
 {analysis['idea']}
 
-═══ تحليل منطق السوق ═══
+═══ تحليل الطلب على الوساطة ═══
 {_parse_agent_analysis(analysis.get('market_analysis', ''))}
 
-═══ التحليل المالي ═══
+═══ التحليل المالي للوساطة ═══
 {_parse_agent_analysis(analysis.get('financial_analysis', ''))}
 
-═══ التحليل التنافسي ═══
+═══ تحليل المنافسة في الوساطة ═══
 {_parse_agent_analysis(analysis.get('competitive_analysis', ''))}
 
-═══ التحليل القانوني والتنظيمي ═══
+═══ التحليل القانوني للوساطة ═══
 {_parse_agent_analysis(analysis.get('legal_analysis', ''))}
 
-═══ التحليل التقني ═══
+═══ التحليل التقني للمنصة ═══
 {_parse_agent_analysis(analysis.get('technical_analysis', ''))}
+
+═══ تحليل نماذج الوساطة ═══
+{_parse_brokerage_models(analysis.get('brokerage_models_analysis', ''))}
 
 ═══ تحليل SWOT ═══
 {_parse_swot(analysis.get('swot_analysis', ''))}
@@ -434,13 +479,13 @@ def _build_followup_context(analysis):
 {_parse_verdict(analysis.get('final_verdict', ''))}
 
 ═══ تعليمات الإجابة ═══
-أنت تجيب على أسئلة متابعة من المستخدم حول هذه الفكرة الاستثمارية بناءً على التحليلات أعلاه.
+أنت تجيب على أسئلة متابعة من المستخدم حول دراسة جدوى الوساطة التجارية بناءً على التحليلات أعلاه.
 
 عند الإجابة، التزم بما يلي:
 1. **العمق والتفصيل**: قدم إجابات شاملة ومفصلة. لا تكتفِ بإجابات سطحية. استخدم الأرقام والمعطيات من التحليلات عند الإمكان.
 2. **الهيكلة**: استخدم العناوين (##) والنقاط المرقمة والقوائم لتنظيم إجابتك.
 3. **التحليل النقدي**: لا تكتفِ بتكرار ما في التحليلات. أضف رؤية نقدية، وربط بين النقاط، واقترح حلولاً عملية.
-4. **السياق العربي**: خذ بعين الاعتبار طبيعة الأسواق العربية، الثقافة الاستهلاكية، والبيئة التنظيمية في المنطقة.
+4. **السياق العربي**: خذ بعين الاعتبار طبيعة الأسواق العربية، الثقافة التجارية، والبيئة التنظيمية في المنطقة.
 5. **اللغة**: أجب بالعربية الفصحى بأسلوب مهني واحترافي.
 6. **الأمانة**: إذا كان السؤال خارج نطاق التحليلات المتوفرة، أشر إلى ذلك بوضوح وقدم رأياً عاماً مع التنبيه.
 7. **المحادثة**: تذكّر سياق الأسئلة السابقة في هذه المحادثة وابنِ عليها.
@@ -490,7 +535,7 @@ def ask_followup():
 ═══ تعليمات استخدام نتائج البحث ═══
 - استخدم هذه النتائج لدعم إجابتك بمعلومات حديثة وواقعية
 - اذكر المصادر عند الاستشهاد بمعلومة من نتائج البحث
-- لا تكتفِ بنقل النتائج حرفياً — حللها واربطها بسياق الفكرة الاستثمارية
+- لا تكتفِ بنقل النتائج حرفياً — حللها واربطها بسياق دراسة الوساطة التجارية
 - إذا تعارضت نتائج البحث مع التحليل الأصلي، وضّح ذلك للمستخدم
 - أشر في بداية إجابتك أنك استعنت بنتائج بحث الويب
 """
@@ -603,22 +648,22 @@ def get_providers():
 
 @app.route('/sectors')
 def get_sectors():
-    """قائمة القطاعات الاستثمارية المتاحة."""
+    """قائمة القطاعات المتاحة لدراسة جدوى الوساطة."""
     return jsonify({k: {"name_ar": v["name_ar"], "icon": v["icon"]} for k, v in SECTORS.items()})
 
 
 @app.route('/api/market-needs/<sector>')
 def market_needs_data(sector):
-    """بيانات احتياج السوق لقطاع معين - مهيكلة للعرض المرئي."""
+    """بيانات فرص الوساطة لقطاع معين - مهيكلة للعرض المرئي."""
     data = bahrain_service.get_sector_data(sector)
     return jsonify(data)
 
 
 @app.route('/api/analyze-market-needs', methods=['POST'])
 def analyze_market_needs():
-    """تحليل احتياج السوق بالذكاء الاصطناعي - يحلل البيانات ويقترح أنشطة استثمارية."""
+    """تحليل فرص الوساطة التجارية بالذكاء الاصطناعي - يحلل البيانات ويقترح نماذج وساطة."""
     data = request.get_json()
-    sector = data.get('sector', 'general').strip()
+    sector = data.get('sector', '').strip()
     budget = data.get('budget', '').strip()
     api_key = data.get('api_key', '').strip() or os.environ.get('OPENAI_API_KEY', '')
     provider = data.get('provider', 'openai').strip()
@@ -626,6 +671,9 @@ def analyze_market_needs():
 
     if not api_key:
         return jsonify({'error': 'الرجاء إدخال مفتاح API'}), 400
+
+    if not sector or sector not in SECTORS:
+        return jsonify({'error': 'الرجاء اختيار قطاع صالح'}), 400
 
     try:
         # جلب بيانات القطاع المهيكلة + السياق النصي
@@ -640,40 +688,55 @@ def analyze_market_needs():
             budget_formatted = f"{budget_int:,}"
             budget_constraint = f"""
 ** قيد رأس المال: المستثمر يملك أقل من {budget_formatted} دينار بحريني **
-- يجب أن تكون جميع الأنشطة المقترحة قابلة للتنفيذ بميزانية لا تتجاوز {budget_formatted} د.ب
-- لا تقترح أي مشروع يتطلب رأس مال أعلى من {budget_formatted} د.ب
-- ركز على المشاريع الصغيرة والمتناهية الصغر إذا كانت الميزانية محدودة
-- وضّح في investment_range أن التكلفة ضمن حدود الميزانية المتاحة
+- يجب أن تكون جميع نماذج الوساطة المقترحة قابلة للتنفيذ بميزانية لا تتجاوز {budget_formatted} د.ب
+- لا تقترح أي نموذج يتطلب رأس مال أعلى من {budget_formatted} د.ب
+- ركز على نماذج الوساطة منخفضة التكلفة إذا كانت الميزانية محدودة
 """
 
-        system_prompt = f"""أنت محلل استثماري استراتيجي متخصص في السوق البحريني. مهمتك تحليل بيانات السوق الحقيقية لقطاع "{sector_name}" وتحديد الاحتياجات والفرص الاستثمارية.
+        # سياق الوساطة الخاص بالقطاع
+        brokerage_ctx = SECTORS.get(sector, {}).get('brokerage_context', '')
+
+        system_prompt = f"""أنت محلل متخصص في الوساطة التجارية (الدلالة/السمسرة) في السوق البحريني.
+
+مهمتك: تحليل بيانات السوق الحقيقية لقطاع "{sector_name}" وتحديد فرص إنشاء شركة وساطة تجارية تربط البائعين بالمشترين في هذا القطاع.
+
+سياق الوساطة في هذا القطاع:
+{brokerage_ctx}
 
 {market_context}
 {budget_constraint}
-بناءً على البيانات أعلاه، حلل القطاع وقدم توصيات استثمارية.
+
+** الوساطة التجارية تعني: شركة/منصة تربط البائعين بالمشترين وتأخذ عمولة أو رسوم على كل معاملة ناجحة. لا تبيع ولا تشتري بنفسها. **
+
+بناءً على البيانات أعلاه، حلل فرص الوساطة التجارية (الدلالة) في هذا القطاع.
 
 ** مهم جداً: يجب أن ترد بصيغة JSON فقط بالهيكل التالي **
 {{
-  "sector_overview": "تحليل شامل للقطاع في فقرتين أو ثلاث، يتضمن الوضع الحالي والاتجاهات بناءً على الأرقام الفعلية",
-  "opportunities": [
-    {{"activity": "اسم النشاط الاستثماري", "why": "لماذا هذا النشاط مناسب - مع أرقام من البيانات", "potential": "عالي أو متوسط أو منخفض", "investment_range": "نطاق الاستثمار المتوقع بالدينار البحريني"}},
-    ...5-8 أنشطة
+  "sector_overview": "تحليل شامل لواقع الوساطة في هذا القطاع: هل يعتمد على وسطاء تقليديين أم علاقات شخصية؟ ما حجم المعاملات التي يمكن التوسط فيها؟ (فقرتين أو ثلاث)",
+  "buyer_seller_map": [
+    {{"sellers": "وصف البائعين (مثلاً: مصانع أغذية، مستوردين)", "buyers": "وصف المشترين (مثلاً: مطاعم، فنادق)", "transaction_type": "نوع المعاملة (مثلاً: توريد مواد خام)", "estimated_volume": "حجم المعاملات التقديري", "current_method": "كيف تتم المعاملات حالياً (علاقات شخصية، وسطاء تقليديين، منصات...)"}},
+    ...3-5 أزواج
   ],
-  "gaps": ["فجوة سوقية 1 مع تفصيل", "فجوة 2", ...3-6 فجوات],
-  "risks": ["مخاطرة 1 مع تفصيل", "مخاطرة 2", ...3-5 مخاطر],
-  "recommendation": "التوصية الاستراتيجية النهائية في فقرة",
-  "best_activity": "أفضل نشاط استثماري مقترح مع تبرير مختصر",
-  "estimated_demand": "تقدير حجم الطلب في السوق البحريني لهذا القطاع"
+  "brokerage_models": [
+    {{"model_name": "اسم نموذج الوساطة (مثلاً: سوق B2B إلكتروني، وساطة بالعمولة، نظام مزادات...)", "how_it_works": "كيف يعمل هذا النموذج في هذا القطاع تحديداً", "revenue_model": "كيف يربح الوسيط (عمولة %، اشتراك شهري، رسوم إدراج...)", "estimated_commission": "نسبة العمولة أو الرسوم المتوقعة", "potential": "عالي أو متوسط أو منخفض", "startup_cost": "تكلفة الإطلاق التقديرية بالدينار البحريني"}},
+    ...4-6 نماذج
+  ],
+  "gaps": ["فجوة 1: وصف مفصل لفجوة في الوساطة الحالية يمكن استغلالها", ...3-5 فجوات],
+  "risks": ["مخاطرة 1: وصف مفصل", ...3-5 مخاطر],
+  "best_model": "أفضل نموذج وساطة مقترح لهذا القطاع مع تبرير",
+  "estimated_demand": "تقدير حجم الطلب على خدمات الوساطة في هذا القطاع",
+  "recommendation": "التوصية الاستراتيجية النهائية: ما النموذج الأمثل ولماذا وكيف تبدأ"
 }}
 
-- opportunities يجب أن تحتوي 5-8 أنشطة
+- buyer_seller_map: 3-5 أزواج بائع-مشتري رئيسية في القطاع
+- brokerage_models: 4-6 نماذج وساطة مع تفاصيل الإيرادات والتكلفة
 - potential يجب أن يكون: "عالي" أو "متوسط" أو "منخفض"
 - استخدم الأرقام الحقيقية من البيانات المرفقة في تحليلك
 - عند ذكر أي إحصائية، اذكر أن المصدر هو "بوابة البيانات المفتوحة البحرينية (data.gov.bh)"
 - لا تضف أي نص خارج JSON"""
 
         budget_note = f" برأس مال لا يتجاوز {int(budget):,} دينار بحريني" if budget else ""
-        user_message = f"حلل احتياج السوق البحريني في قطاع \"{sector_name}\" واقترح أنشطة استثمارية مناسبة{budget_note} بناءً على البيانات الاقتصادية الفعلية."
+        user_message = f"حلل فرص الوساطة التجارية (الدلالة/السمسرة) في قطاع \"{sector_name}\" بالسوق البحريني: من البائعون؟ من المشترون؟ ما المعاملات التي يمكن التوسط فيها؟ ما أفضل نموذج وساطة؟{budget_note}"
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -692,10 +755,10 @@ def analyze_market_needs():
             result = json.loads(content)
             return jsonify({'analysis': result})
         except json.JSONDecodeError:
-            return jsonify({'analysis': {'sector_overview': content, 'opportunities': [], 'gaps': [], 'risks': [], 'recommendation': '', 'best_activity': '', 'estimated_demand': ''}})
+            return jsonify({'analysis': {'sector_overview': content, 'buyer_seller_map': [], 'brokerage_models': [], 'gaps': [], 'risks': [], 'recommendation': '', 'best_model': '', 'estimated_demand': ''}})
 
     except Exception as e:
-        logger.error(f"❌ خطأ في تحليل احتياج السوق: {type(e).__name__}: {e}")
+        logger.error(f"❌ خطأ في تحليل فرص الوساطة: {type(e).__name__}: {e}")
         logger.error(f"📋 التتبع:\n{traceback.format_exc()}")
         return jsonify({'error': f'حدث خطأ: {type(e).__name__} - {str(e)}'}), 500
 

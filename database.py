@@ -52,6 +52,7 @@ def init_db():
     new_columns = {
         'legal_analysis': 'TEXT',
         'technical_analysis': 'TEXT',
+        'brokerage_models_analysis': 'TEXT',
         'swot_analysis': 'TEXT',
         'action_plan': 'TEXT',
         'share_token': 'TEXT',
@@ -68,15 +69,18 @@ def init_db():
 
 def save_analysis(idea, market_analysis, financial_analysis, competitive_analysis,
                   final_verdict, legal_analysis='', technical_analysis='',
-                  swot_analysis='', action_plan='', sector='general'):
+                  brokerage_models_analysis='', swot_analysis='', action_plan='',
+                  sector='general'):
     share_token = uuid.uuid4().hex[:12]
     conn = get_connection()
     cursor = conn.execute(
         """INSERT INTO analyses (idea, market_analysis, financial_analysis, competitive_analysis,
-           legal_analysis, technical_analysis, swot_analysis, action_plan, final_verdict, share_token, sector)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           legal_analysis, technical_analysis, brokerage_models_analysis,
+           swot_analysis, action_plan, final_verdict, share_token, sector)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (idea, market_analysis, financial_analysis, competitive_analysis,
-         legal_analysis, technical_analysis, swot_analysis, action_plan, final_verdict, share_token, sector)
+         legal_analysis, technical_analysis, brokerage_models_analysis,
+         swot_analysis, action_plan, final_verdict, share_token, sector)
     )
     analysis_id = cursor.lastrowid
     conn.commit()

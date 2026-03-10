@@ -14,73 +14,77 @@ logger = logging.getLogger(__name__)
 # ─── تعريف القطاعات الاستثمارية ───
 
 SECTORS = {
-    "general": {
-        "name_ar": "عام - كل القطاعات",
-        "icon": "🌐",
-        "datasets": "all"
-    },
     "food_hospitality": {
         "name_ar": "مطاعم وأغذية وضيافة",
         "icon": "🍽️",
         "gdp_keywords": ["إقامة", "طعام", "الغذائية"],
         "cpi_keywords": ["طعام", "مشروبات", "مطاعم", "فنادق"],
-        "include_datasets": ["tourism", "tamkeen", "unemployment", "fdi", "labor"]
+        "include_datasets": ["tourism", "tamkeen", "unemployment", "fdi", "labor"],
+        "brokerage_context": "وساطة بين الموردين (مزارع، مصانع أغذية، مستوردي مواد غذائية) والمشترين (مطاعم، فنادق، كافيهات، شركات تموين). تشمل المعاملات: توريد مواد خام، معدات مطابخ، خدمات تموين."
     },
     "real_estate": {
         "name_ar": "عقارات وبناء وتشييد",
         "icon": "🏗️",
         "gdp_keywords": ["التشييد", "العقارية", "البناء"],
         "cpi_keywords": ["مسكن", "مياه", "كهرباء", "اثاث"],
-        "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"]
+        "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مالكي العقارات/المطورين والمشترين/المستأجرين، وكذلك بين مقاولي البناء وأصحاب المشاريع. تشمل المعاملات: بيع وشراء عقارات، تأجير، مقاولات بناء، توريد مواد بناء."
     },
     "technology": {
         "name_ar": "تقنية معلومات واتصالات",
         "icon": "💻",
         "gdp_keywords": ["المعلومات", "الاتصالات"],
         "cpi_keywords": ["الاتصالات"],
-        "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"]
+        "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي الخدمات التقنية (شركات برمجة، مطورين مستقلين، شركات استضافة) والمشترين (شركات تحتاج حلول تقنية، حكومة، بنوك). تشمل المعاملات: تطوير برمجيات، استشارات تقنية، خدمات سحابية."
     },
     "finance": {
         "name_ar": "خدمات مالية وتأمين",
         "icon": "🏦",
         "gdp_keywords": ["المالية", "التأمين"],
         "cpi_keywords": [],
-        "include_datasets": ["fdi", "stock_market", "unemployment", "labor", "tamkeen"]
+        "include_datasets": ["fdi", "stock_market", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مقدمي الخدمات المالية (بنوك، شركات تأمين، صناديق استثمار) والعملاء (أفراد، شركات). تشمل المعاملات: وساطة تأمين، وساطة قروض، مقارنة منتجات مالية. ملاحظة: الوساطة المالية تخضع لرقابة مصرف البحرين المركزي."
     },
     "manufacturing": {
         "name_ar": "صناعة وتصنيع",
         "icon": "🏭",
         "gdp_keywords": ["الصناعة التحويلية", "التعدين"],
         "cpi_keywords": [],
-        "include_datasets": ["fdi", "imports", "unemployment", "labor", "tamkeen"]
+        "include_datasets": ["fdi", "imports", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين المصانع/المصنعين (محلياً وخليجياً) والمشترين (تجار جملة، موزعين، شركات). تشمل المعاملات: توريد مواد خام، بيع منتجات مصنعة، عقود تصنيع حسب الطلب (OEM)."
     },
     "health": {
         "name_ar": "صحة ورعاية طبية",
         "icon": "🏥",
         "gdp_keywords": ["الصحة", "الاجتماعي"],
         "cpi_keywords": ["الصحة"],
-        "include_datasets": ["unemployment", "labor", "tamkeen"]
+        "include_datasets": ["unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي الخدمات الصحية (مستشفيات، عيادات، صيدليات، موردي أجهزة طبية) والمشترين (مرضى، شركات تأمين صحي، مؤسسات حكومية). تشمل المعاملات: توريد أجهزة ومستلزمات طبية، حجز مواعيد، خدمات رعاية منزلية."
     },
     "education": {
         "name_ar": "تعليم وتدريب",
         "icon": "🎓",
         "gdp_keywords": ["التعليم"],
         "cpi_keywords": ["التعليم"],
-        "include_datasets": ["unemployment", "labor", "tamkeen"]
+        "include_datasets": ["unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مقدمي خدمات التعليم والتدريب (مدارس خاصة، معاهد تدريب، مدربين مستقلين) والمشترين (طلاب، أولياء أمور، شركات تبحث عن تدريب موظفيها). تشمل المعاملات: حجز دورات، توظيف مدربين، بيع مناهج تعليمية."
     },
     "transport": {
         "name_ar": "نقل ولوجستيات",
         "icon": "🚚",
         "gdp_keywords": ["النقل", "التخزين"],
         "cpi_keywords": ["النقل"],
-        "include_datasets": ["fdi", "imports", "unemployment", "labor", "tamkeen"]
+        "include_datasets": ["fdi", "imports", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين شركات النقل والشحن (محلياً ودولياً) والمشترين (تجار، مصانع، شركات تحتاج خدمات لوجستية). تشمل المعاملات: شحن بضائع، تخزين، تخليص جمركي، نقل بري/بحري/جوي."
     },
     "retail": {
         "name_ar": "تجارة وتجزئة",
         "icon": "🛍️",
         "gdp_keywords": ["التجارة", "تجارة الجملة"],
         "cpi_keywords": ["ملابس", "سلع"],
-        "include_datasets": ["imports", "tourism", "unemployment", "labor", "tamkeen"]
+        "include_datasets": ["imports", "tourism", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين تجار الجملة/المستوردين والمشترين (محلات تجزئة، متاجر إلكترونية، موزعين). تشمل المعاملات: توريد بضائع بالجملة، توزيع منتجات، عقود توريد مستمرة."
     },
 }
 
@@ -483,10 +487,12 @@ class BahrainDataService:
     # بناء سياق السوق - الدالة الرئيسية
     # ═══════════════════════════════════════════
 
-    def build_market_context(self, sector='general'):
+    def build_market_context(self, sector='food_hospitality'):
         """بناء سياق السوق البحريني حسب القطاع المحدد - من قاعدة البيانات المحلية."""
-        sector_config = SECTORS.get(sector, SECTORS['general'])
-        is_general = sector == 'general' or sector_config.get('datasets') == 'all'
+        sector_config = SECTORS.get(sector)
+        if not sector_config:
+            sector_config = list(SECTORS.values())[0]
+        is_general = sector_config.get('datasets') == 'all'
 
         logger.info(f"🇧🇭 بناء سياق السوق | القطاع: {sector_config['name_ar']}")
 
@@ -550,6 +556,12 @@ class BahrainDataService:
         footer = "═══ ملاحظة: استخدم هذه البيانات الحقيقية في تحليلك. حلل الفكرة حصرياً في سياق السوق البحريني. عند الاستشهاد بأي رقم أو إحصائية من هذه البيانات، يجب أن تذكر صراحةً أن المصدر هو: بوابة البيانات المفتوحة البحرينية (data.gov.bh). مثال: 'وفقاً لبيانات بوابة البيانات المفتوحة البحرينية (data.gov.bh)، بلغ نمو الناتج المحلي...' ═══"
 
         context = f"\n\n{header}\n\n" + "\n\n".join(sections) + f"\n\n{footer}"
+
+        # إضافة سياق الوساطة التجارية للقطاع
+        brokerage_note = sector_config.get('brokerage_context', '')
+        if brokerage_note:
+            context += f"\n\n═══ سياق الوساطة التجارية ═══\n{brokerage_note}\n"
+
         logger.info(f"✅ سياق السوق ({sector_label}): {len(context)} حرف، {len(sections)} أقسام")
         return context
 
@@ -557,10 +569,12 @@ class BahrainDataService:
     # بيانات مهيكلة للعرض المرئي (صفحة احتياج السوق)
     # ═══════════════════════════════════════════
 
-    def get_sector_data(self, sector='general'):
-        """إرجاع بيانات القطاع بصيغة JSON مهيكلة للعرض في صفحة احتياج السوق."""
-        sector_config = SECTORS.get(sector, SECTORS['general'])
-        is_general = sector == 'general' or sector_config.get('datasets') == 'all'
+    def get_sector_data(self, sector='food_hospitality'):
+        """إرجاع بيانات القطاع بصيغة JSON مهيكلة للعرض في صفحة فرص الوساطة."""
+        sector_config = SECTORS.get(sector)
+        if not sector_config:
+            sector_config = list(SECTORS.values())[0]
+        is_general = sector_config.get('datasets') == 'all'
 
         result = {
             "sector": sector,

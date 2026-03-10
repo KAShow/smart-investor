@@ -4,6 +4,7 @@ from .financial import FinancialAgent
 from .competitive import CompetitiveAgent
 from .legal import LegalAgent
 from .technical import TechnicalAgent
+from .brokerage_models import BrokerageModelsAgent
 from .synthesizer import SynthesizerAgent
 from .swot import SwotAgent
 from .action_plan import ActionPlanAgent
@@ -15,6 +16,7 @@ __all__ = [
     'CompetitiveAgent',
     'LegalAgent',
     'TechnicalAgent',
+    'BrokerageModelsAgent',
     'SynthesizerAgent',
     'SwotAgent',
     'ActionPlanAgent'

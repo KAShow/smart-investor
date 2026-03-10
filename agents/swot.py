@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """أنت محلل استراتيجي متخصص في تحليل SWOT (نقاط القوة، الضعف، الفرص، التهديدات).
 
-مهمتك: بناءً على تحليلات خمسة محللين متخصصين (السوق، المالية، المنافسة، القانون، التقنية)، قم بإنشاء تحليل SWOT شامل ومنظم.
+مهمتك: بناءً على تحليلات ستة محللين متخصصين (الطلب على الوساطة، الجدوى المالية للوساطة، المنافسة في الوساطة، قانون الوساطة، الجدوى التقنية، نماذج الوساطة)، قم بإنشاء تحليل SWOT شامل ومنظم لمشروع الوساطة التجارية في القطاع المحدد.
 
 ** مهم جداً: يجب أن ترد بصيغة JSON فقط بالهيكل التالي **
 {
@@ -47,37 +47,42 @@ class SwotAgent:
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     async def analyze(self, idea: str, all_analyses: dict, api_key: str) -> str:
-        user_message = f"""الفكرة الاستثمارية:
+        user_message = f"""دراسة جدوى الوساطة التجارية:
 {idea}
 
 ---
 
-تحليل منطق السوق:
+تحليل الطلب على الوساطة:
 {all_analyses.get('market_analysis', '')}
 
 ---
 
-تحليل الاستدامة المالية:
+تحليل الجدوى المالية للوساطة:
 {all_analyses.get('financial_analysis', '')}
 
 ---
 
-تحليل المتانة التنافسية:
+تحليل المنافسة في الوساطة:
 {all_analyses.get('competitive_analysis', '')}
 
 ---
 
-التحليل القانوني:
+التحليل القانوني للوساطة:
 {all_analyses.get('legal_analysis', '')}
 
 ---
 
-التحليل التقني:
+التحليل التقني للمنصة:
 {all_analyses.get('technical_analysis', '')}
 
 ---
 
-بناءً على جميع التحليلات أعلاه، قدم تحليل SWOT شامل."""
+تحليل نماذج الوساطة:
+{all_analyses.get('brokerage_models_analysis', '')}
+
+---
+
+بناءً على جميع التحليلات أعلاه، قدم تحليل SWOT شامل لمشروع الوساطة التجارية."""
 
         messages = [
             {"role": "system", "content": self.system_prompt},

@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>بحرين سمارت إنفستر - تقرير تحليل استثماري</title>
+    <title>تقرير دراسة جدوى الوساطة التجارية - البحرين</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;700;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,6 +24,7 @@
         .verdict-box { background: #fefce8; border: 2px solid #fbbf24; border-radius: 12px; padding: 25px; text-align: center; margin: 30px 0; }
         .verdict-box .verdict { font-size: 24px; font-weight: 900; color: #b45309; }
         .verdict-box .score-big { font-size: 48px; font-weight: 900; color: #d97706; margin: 10px 0; }
+        .verdict-box .recommended-model { background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; padding: 10px; margin-top: 15px; font-size: 14px; }
         .swot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         .swot-cell { padding: 15px; border-radius: 10px; }
         .swot-s { background: #dcfce7; border: 1px solid #86efac; }
@@ -36,28 +37,32 @@
         .phase { background: #f8fafc; border-right: 4px solid #CE1126; padding: 15px; margin-bottom: 12px; border-radius: 0 8px 8px 0; }
         .phase h4 { color: #9B0E1D; margin-bottom: 5px; }
         .phase .duration { color: #64748b; font-size: 13px; }
+        .models-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .model-card { background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; padding: 12px; }
+        .model-card .model-name { font-weight: 700; font-size: 14px; color: #be185d; }
+        .model-card .model-score { font-size: 13px; color: #9d174d; }
         .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
         @media print { body { padding: 20px; } .section { page-break-inside: avoid; } }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>بحرين سمارت إنفستر 🇧🇭</h1>
-        <p>تقرير تحليل استثماري شامل</p>
+        <h1>دراسة جدوى الوساطة التجارية 🇧🇭</h1>
+        <p>تقرير دراسة جدوى شامل</p>
         <p class="date">{{ analysis.created_at }}</p>
     </div>
 
     <div class="idea-box">
-        <h2>الفكرة الاستثمارية</h2>
+        <h2>موضوع الدراسة</h2>
         <p>{{ analysis.idea }}</p>
     </div>
 
     {% set agents = [
-        ('تحليل منطق السوق', analysis.market_analysis, '#3b82f6'),
-        ('التحليل المالي', analysis.financial_analysis, '#10b981'),
-        ('التحليل التنافسي', analysis.competitive_analysis, '#8b5cf6'),
-        ('التحليل القانوني', analysis.legal_analysis, '#f59e0b'),
-        ('التحليل التقني', analysis.technical_analysis, '#06b6d4')
+        ('تحليل الطلب على الوساطة', analysis.market_analysis, '#3b82f6'),
+        ('التحليل المالي للوساطة', analysis.financial_analysis, '#10b981'),
+        ('تحليل المنافسة في الوساطة', analysis.competitive_analysis, '#8b5cf6'),
+        ('التحليل القانوني للوساطة', analysis.legal_analysis, '#f59e0b'),
+        ('التحليل التقني للمنصة', analysis.technical_analysis, '#06b6d4')
     ] %}
 
     <div class="section">
@@ -90,6 +95,47 @@
         {% endfor %}
     </div>
 
+    {% if analysis.brokerage_models_analysis %}
+    <div class="section">
+        <h2 style="color: #be185d">مقارنة نماذج الوساطة</h2>
+        <div id="brokerage-models-content">
+            <script>
+                (function() {
+                    try {
+                        var d = JSON.parse({{ analysis.brokerage_models_analysis | tojson }});
+                        var el = document.getElementById('brokerage-models-content');
+                        var html = '';
+                        if (d.summary) html += '<p style="margin-bottom:15px">' + d.summary + '</p>';
+                        if (d.models && d.models.length) {
+                            html += '<div class="models-grid">';
+                            d.models.forEach(function(m) {
+                                html += '<div class="model-card">';
+                                html += '<div class="model-name">' + (m.name || '') + '</div>';
+                                if (m.score) html += '<div class="model-score">التقييم: ' + m.score + '/10 | ملاءمة: ' + (m.fit_for_bahrain || '') + '</div>';
+                                if (m.pros && m.pros.length) {
+                                    html += '<ul style="padding-right:15px;margin-top:5px;font-size:12px">';
+                                    m.pros.forEach(function(p) { html += '<li style="color:#16a34a">+ ' + p + '</li>'; });
+                                    html += '</ul>';
+                                }
+                                if (m.cons && m.cons.length) {
+                                    html += '<ul style="padding-right:15px;font-size:12px">';
+                                    m.cons.forEach(function(c) { html += '<li style="color:#dc2626">- ' + c + '</li>'; });
+                                    html += '</ul>';
+                                }
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        }
+                        if (d.recommended_model) html += '<p style="margin-top:15px;font-weight:700;color:#be185d">النموذج الموصى به: ' + d.recommended_model + '</p>';
+                        if (d.recommendation_reason) html += '<p style="font-size:14px;color:#475569">' + d.recommendation_reason + '</p>';
+                        el.innerHTML += html;
+                    } catch(e) {}
+                })();
+            </script>
+        </div>
+    </div>
+    {% endif %}
+
     {% if analysis.final_verdict %}
     <div class="section">
         <h2>الحكم النهائي</h2>
@@ -99,9 +145,15 @@
                     try {
                         var d = JSON.parse({{ analysis.final_verdict | tojson }});
                         var box = document.getElementById('verdict-box');
-                        box.innerHTML = '<div class="verdict">' + (d.verdict || '') + '</div>' +
+                        var html = '<div class="verdict">' + (d.verdict || '') + '</div>' +
                             '<div class="score-big">' + (d.overall_score || 0) + '<span style="font-size:20px;color:#888">/10</span></div>' +
                             '<p>' + (d.summary || '') + '</p>';
+                        if (d.recommended_model) {
+                            html += '<div class="recommended-model"><strong>النموذج الموصى به:</strong> ' + d.recommended_model;
+                            if (d.model_justification) html += '<br><span style="color:#6b7280">' + d.model_justification + '</span>';
+                            html += '</div>';
+                        }
+                        box.innerHTML = html;
                     } catch(e) {}
                 })();
             </script>
@@ -169,8 +221,8 @@
     {% endif %}
 
     <div class="footer">
-        <p>بحرين سمارت إنفستر - Bahrain Smart Investor</p>
-        <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة الذكاء الاصطناعي ولا يعتبر نصيحة استثمارية رسمية</p>
+        <p>دراسة جدوى الوساطة التجارية - البحرين</p>
+        <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة الذكاء الاصطناعي ولا يعتبر دراسة جدوى رسمية</p>
     </div>
 </body>
 </html>
