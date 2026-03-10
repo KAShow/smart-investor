@@ -1,0 +1,20 @@
+[
+  {
+    "n": 9.0,
+    "year": "2024",
+    "indicator": "Bahraini Unemployed (15 years and above) by Sex  (Yearly)",
+    "lmw_shr": "العاطلون البحرينيون (15 سنة فأكثر) حسب الجنس (سنوي)",
+    "sex": "Male",
+    "ljns": "ذكر",
+    "value": 5206.0
+  },
+  {
+    "n": 18.0,
+    "year": "2024",
+    "indicator": "Bahraini Unemployed (15 years and above) by Sex  (Yearly)",
+    "lmw_shr": "العاطلون البحرينيون (15 سنة فأكثر) حسب الجنس (سنوي)",
+    "sex": "Female",
+    "ljns": "أنثى",
+    "value": 12196.0
+  }
+]

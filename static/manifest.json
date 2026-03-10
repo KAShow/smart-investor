@@ -1,0 +1,18 @@
+{
+  "name": "بحرين سمارت إنفستر - Bahrain Smart Investor",
+  "short_name": "بحرين سمارت إنفستر",
+  "description": "نظام استشاري استثماري متقدم متخصص في السوق البحريني",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#CE1126",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇧🇭</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

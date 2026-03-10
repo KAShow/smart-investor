@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بحرين سمارت إنفستر - تقرير مشترك</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Alexandria', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        body { background: #050505; }
+    </style>
+</head>
+<body class="text-white min-h-screen p-8">
+    <div class="max-w-5xl mx-auto">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-600">بحرين سمارت إنفستر 🇧🇭</h1>
+            <p class="text-gray-400 mt-2">تقرير تحليل استثماري مشترك</p>
+            <p class="text-gray-600 text-sm mt-1">{{ analysis.created_at }}</p>
+        </header>
+
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+            <h2 class="text-red-400 font-bold mb-2">الفكرة الاستثمارية</h2>
+            <p class="text-gray-300">{{ analysis.idea }}</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-4 mb-8" id="agent-cards"></div>
+        <div class="grid md:grid-cols-2 gap-4 mb-8" id="extra-cards"></div>
+
+        <div class="bg-black/80 border border-yellow-500/30 rounded-2xl p-8 mb-8" id="verdict-section"></div>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-6" id="swot-section"></div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-6" id="plan-section"></div>
+        </div>
+
+        <footer class="text-center text-gray-600 text-sm mt-12 border-t border-white/5 pt-6">
+            <p>بحرين سمارت إنفستر - Bahrain Smart Investor</p>
+        </footer>
+    </div>
+
+    <script>
+        const analysis = {{ analysis | tojson }};
+
+        function renderCard(container, title, dataStr, color) {
+            try {
+                const data = JSON.parse(dataStr);
+                const div = document.createElement('div');
+                div.className = 'bg-white/5 border border-white/10 rounded-2xl p-5';
+                let html = `<h3 class="font-bold mb-2" style="color:${color}">${title}</h3>`;
+                if (data.score) html += `<span class="inline-block px-3 py-1 rounded-full text-sm font-bold" style="background:${color}20;color:${color}">${data.score}/10</span>`;
+                if (data.summary) html += `<p class="text-gray-400 text-sm mt-2">${data.summary}</p>`;
+                if (data.details) { html += '<ul class="mt-2 space-y-1">'; data.details.forEach(d => html += `<li class="text-sm text-gray-300">• ${d}</li>`); html += '</ul>'; }
+                div.innerHTML = html;
+                container.appendChild(div);
+            } catch(e) {}
+        }
+
+        const agentCards = document.getElementById('agent-cards');
+        const extraCards = document.getElementById('extra-cards');
+        renderCard(agentCards, 'تحليل السوق', analysis.market_analysis, '#3b82f6');
+        renderCard(agentCards, 'التحليل المالي', analysis.financial_analysis, '#10b981');
+        renderCard(agentCards, 'التحليل التنافسي', analysis.competitive_analysis, '#8b5cf6');
+        if (analysis.legal_analysis) renderCard(extraCards, 'التحليل القانوني', analysis.legal_analysis, '#f59e0b');
+        if (analysis.technical_analysis) renderCard(extraCards, 'التحليل التقني', analysis.technical_analysis, '#06b6d4');
+
+        // Verdict
+        try {
+            const v = JSON.parse(analysis.final_verdict);
+            const vs = document.getElementById('verdict-section');
+            const scoreColor = v.overall_score >= 7 ? '#10b981' : v.overall_score >= 4 ? '#f59e0b' : '#ef4444';
+            vs.innerHTML = `<div class="text-center"><span class="text-2xl font-black" style="color:#fbbf24">${v.verdict}</span>
+                <div class="text-5xl font-black mt-2" style="color:${scoreColor}">${v.overall_score}<span class="text-lg text-gray-500">/10</span></div>
+                <p class="text-gray-400 mt-4">${v.summary || ''}</p></div>`;
+        } catch(e) {}
+
+        // SWOT
+        if (analysis.swot_analysis) {
+            try {
+                const s = JSON.parse(analysis.swot_analysis);
+                const ss = document.getElementById('swot-section');
+                let html = '<h3 class="font-bold text-red-400 mb-4">تحليل SWOT</h3><div class="grid grid-cols-2 gap-3">';
+                [{k:'strengths',t:'القوة',c:'text-green-400'},{k:'weaknesses',t:'الضعف',c:'text-red-400'},{k:'opportunities',t:'الفرص',c:'text-blue-400'},{k:'threats',t:'التهديدات',c:'text-yellow-400'}].forEach(x => {
+                    html += `<div><h4 class="${x.c} font-bold text-sm mb-1">${x.t}</h4><ul class="text-xs text-gray-400 space-y-1">`;
+                    (s[x.k]||[]).forEach(i => html += `<li>• ${typeof i === 'string' ? i : i.point}</li>`);
+                    html += '</ul></div>';
+                });
+                html += '</div>';
+                ss.innerHTML = html;
+            } catch(e) {}
+        }
+
+        // Action Plan
+        if (analysis.action_plan) {
+            try {
+                const p = JSON.parse(analysis.action_plan);
+                const ps = document.getElementById('plan-section');
+                let html = '<h3 class="font-bold text-red-400 mb-4">خطة العمل</h3>';
+                if (p.executive_summary) html += `<p class="text-gray-400 text-sm mb-3">${p.executive_summary}</p>`;
+                (p.phases||[]).forEach((ph,i) => {
+                    html += `<div class="border-r-2 border-red-500 pr-3 mb-3"><h4 class="text-sm font-bold text-gray-200">${ph.name||('المرحلة '+(i+1))}</h4>
+                        <p class="text-xs text-gray-500">${ph.duration||''}</p>
+                        <ul class="text-xs text-gray-400 mt-1">`;
+                    (ph.tasks||[]).forEach(t => html += `<li>• ${t}</li>`);
+                    html += '</ul></div>';
+                });
+                ps.innerHTML = html;
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>

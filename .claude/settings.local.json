@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install tenacity)",
+      "Bash(python -m pip install tenacity)",
+      "Bash(where python3)",
+      "Bash(where python)",
+      "Bash(where py)",
+      "Bash(/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe -m pip install tenacity)",
+      "Bash(/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe -c \":*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(\"c:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.venv\\\\Scripts\\\\python.exe\" -c:*)"
+    ]
+  }
+}
