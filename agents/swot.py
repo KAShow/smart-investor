@@ -1,6 +1,7 @@
 import json
 import logging
 import openai
+import anthropic
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
 from .base import create_completion
 
@@ -43,10 +44,14 @@ class SwotAgent:
             openai.APITimeoutError,
             openai.RateLimitError,
             openai.APIConnectionError,
+            anthropic.APITimeoutError,
+            anthropic.RateLimitError,
+            anthropic.APIConnectionError,
+            anthropic.InternalServerError,
         )),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    async def analyze(self, idea: str, all_analyses: dict, api_key: str) -> str:
+    async def analyze(self, idea: str, all_analyses: dict, api_key: str, provider: str = 'openai', model_override: str = None) -> str:
         user_message = f"""دراسة جدوى الوساطة التجارية:
 {idea}
 
@@ -89,7 +94,8 @@ class SwotAgent:
             {"role": "user", "content": user_message}
         ]
 
-        content = await create_completion('openai', self.model, api_key, messages, max_tokens=4000)
+        model = model_override or self.model
+        content = await create_completion(provider, model, api_key, messages, max_tokens=4000)
         try:
             json.loads(content)
             return content

@@ -17,6 +17,7 @@ from database import (init_db, save_analysis, get_all_analyses, get_analysis,
                       delete_analysis, get_analysis_by_token, rate_analysis, get_dashboard_stats,
                       get_bahrain_data_status)
 from bahrain_data import BahrainDataService, SECTORS
+from data_sources import DataAggregator
 from web_search import search_web
 
 logger = logging.getLogger(__name__)
@@ -36,9 +37,21 @@ synthesizer = SynthesizerAgent()
 swot_agent = SwotAgent()
 action_plan_agent = ActionPlanAgent()
 bahrain_service = BahrainDataService()
+data_aggregator = DataAggregator()
 
 # تهيئة قاعدة البيانات
 init_db()
+
+
+DEFAULT_MODELS = {
+    'openai': 'gpt-5.2',
+    'gemini': 'gemini-2.5-flash',
+    'anthropic': 'claude-sonnet-4-20250514',
+}
+
+
+def get_default_model(provider: str) -> str:
+    return DEFAULT_MODELS.get(provider, 'gpt-5.2')
 
 
 def validate_input(sector, api_key):
@@ -66,11 +79,22 @@ def shared_view(token):
 @app.route('/analyze-stream')
 def analyze_stream():
     sector = request.args.get('sector', '').strip()
-    api_key = request.args.get('api_key', '').strip() or os.environ.get('OPENAI_API_KEY', '')
     provider = request.args.get('provider', 'openai').strip()
-    model = request.args.get('model', '').strip() or None
+    model = request.args.get('model', '').strip() or get_default_model(provider)
+    synthesizer_provider = request.args.get('synthesizer_provider', '').strip() or provider
+    synthesizer_model = request.args.get('synthesizer_model', '').strip() or get_default_model(synthesizer_provider)
     budget = request.args.get('budget', '').strip()
     notes = request.args.get('notes', '').strip()
+
+    # تحديد مفتاح API حسب المزود
+    api_key = request.args.get('api_key', '').strip()
+    if not api_key:
+        if provider == 'anthropic':
+            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        elif provider == 'gemini':
+            api_key = os.environ.get('GEMINI_API_KEY', '')
+        else:
+            api_key = os.environ.get('OPENAI_API_KEY', '')
 
     error = validate_input(sector, api_key)
     if error:
@@ -128,14 +152,29 @@ def analyze_stream():
                     logger.error(f"❌ التتبع:\n{traceback.format_exc()}")
                     event_queue.put((name, json.dumps({"title": "خطأ", "summary": f"{err_type}: {err_msg}", "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)))
 
-            # تشغيل الوكلاء الستة بالتوازي مع بيانات السوق البحريني
+            # جلب بيانات إضافية من مصادر متعددة
+            try:
+                aggregated = await data_aggregator.fetch_all(sector)
+            except Exception as e:
+                logger.warning(f"⚠️ فشل جلب البيانات الإضافية: {e}")
+                aggregated = {}
+
+            # بناء سياق مخصص لكل وكيل
+            market_ctx = market_context + data_aggregator.build_agent_context(sector, "market", aggregated)
+            financial_ctx = market_context + data_aggregator.build_agent_context(sector, "financial", aggregated)
+            competitive_ctx = market_context + data_aggregator.build_agent_context(sector, "competitive", aggregated)
+            legal_ctx = market_context + data_aggregator.build_agent_context(sector, "legal", aggregated)
+            technical_ctx = market_context + data_aggregator.build_agent_context(sector, "technical", aggregated)
+            brokerage_ctx = market_context + data_aggregator.build_agent_context(sector, "brokerage_models", aggregated)
+
+            # تشغيل الوكلاء الستة بالتوازي مع بيانات مخصصة لكل وكيل
             await asyncio.gather(
-                run_agent("market_analysis", market_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
-                run_agent("financial_analysis", financial_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
-                run_agent("competitive_analysis", competitive_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
-                run_agent("legal_analysis", legal_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
-                run_agent("technical_analysis", technical_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
-                run_agent("brokerage_models_analysis", brokerage_models_agent.analyze(idea, api_key, provider, model, market_context=market_context)),
+                run_agent("market_analysis", market_agent.analyze(idea, api_key, provider, model, market_context=market_ctx)),
+                run_agent("financial_analysis", financial_agent.analyze(idea, api_key, provider, model, market_context=financial_ctx)),
+                run_agent("competitive_analysis", competitive_agent.analyze(idea, api_key, provider, model, market_context=competitive_ctx)),
+                run_agent("legal_analysis", legal_agent.analyze(idea, api_key, provider, model, market_context=legal_ctx)),
+                run_agent("technical_analysis", technical_agent.analyze(idea, api_key, provider, model, market_context=technical_ctx)),
+                run_agent("brokerage_models_analysis", brokerage_models_agent.analyze(idea, api_key, provider, model, market_context=brokerage_ctx)),
             )
             event_queue.put(("agents_done", None))
 
@@ -168,8 +207,8 @@ def analyze_stream():
                     technical_analysis=results.get('technical_analysis', ''),
                     brokerage_models_analysis=results.get('brokerage_models_analysis', ''),
                     api_key=api_key,
-                    provider=provider,
-                    model_override=model
+                    provider=synthesizer_provider,
+                    model_override=synthesizer_model
                 )
             return asyncio.run(_synthesize())
 
@@ -196,9 +235,10 @@ def analyze_stream():
         extras_queue = queue.Queue()
         def run_extras():
             async def _extras():
+                effective_model = model or get_default_model(provider)
                 swot_result, plan_result = await asyncio.gather(
-                    swot_agent.analyze(idea, results, api_key),
-                    action_plan_agent.generate(idea, results, verdict, api_key),
+                    swot_agent.analyze(idea, results, api_key, provider=provider, model_override=effective_model),
+                    action_plan_agent.generate(idea, results, verdict, api_key, provider=provider, model_override=effective_model),
                     return_exceptions=True
                 )
                 if isinstance(swot_result, Exception):
@@ -497,9 +537,16 @@ def ask_followup():
     data = request.get_json()
     question = data.get('question', '').strip()
     analysis_id = data.get('analysis_id')
-    api_key = data.get('api_key', '').strip() or os.environ.get('OPENAI_API_KEY', '')
-    conversation_history = data.get('conversation_history', [])
     provider = data.get('provider', 'openai').strip()
+    api_key = data.get('api_key', '').strip()
+    if not api_key:
+        if provider == 'anthropic':
+            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        elif provider == 'gemini':
+            api_key = os.environ.get('GEMINI_API_KEY', '')
+        else:
+            api_key = os.environ.get('OPENAI_API_KEY', '')
+    conversation_history = data.get('conversation_history', [])
     model = data.get('model', '').strip()
     web_search_enabled = data.get('web_search', False)
 
@@ -563,7 +610,7 @@ def ask_followup():
             genai.configure(api_key=api_key)
             system_prompt = messages[0]['content']
             gemini_model = genai.GenerativeModel(
-                model or 'gemini-2.5-flash',
+                model or get_default_model(provider),
                 system_instruction=system_prompt
             )
             gemini_history = []
@@ -576,11 +623,28 @@ def ask_followup():
                 generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
             )
             answer = gemini_resp.text or "لم أتمكن من الإجابة"
+        elif provider == 'anthropic':
+            import anthropic as anthropic_sdk
+            client = anthropic_sdk.Anthropic(api_key=api_key)
+            system_msg = ""
+            api_messages = []
+            for msg in messages:
+                if msg['role'] == 'system':
+                    system_msg = msg['content']
+                else:
+                    api_messages.append(msg)
+            response = client.messages.create(
+                model=model or get_default_model(provider),
+                max_tokens=4000,
+                system=system_msg,
+                messages=api_messages,
+            )
+            answer = response.content[0].text or "لم أتمكن من الإجابة"
         else:
             from openai import OpenAI
             client = OpenAI(api_key=api_key)
             response = client.chat.completions.create(
-                model=model or 'gpt-5.2',
+                model=model or get_default_model(provider),
                 messages=messages,
                 max_completion_tokens=4000
             )
@@ -665,9 +729,16 @@ def analyze_market_needs():
     data = request.get_json()
     sector = data.get('sector', '').strip()
     budget = data.get('budget', '').strip()
-    api_key = data.get('api_key', '').strip() or os.environ.get('OPENAI_API_KEY', '')
     provider = data.get('provider', 'openai').strip()
     model = data.get('model', '').strip()
+    api_key = data.get('api_key', '').strip()
+    if not api_key:
+        if provider == 'anthropic':
+            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        elif provider == 'gemini':
+            api_key = os.environ.get('GEMINI_API_KEY', '')
+        else:
+            api_key = os.environ.get('OPENAI_API_KEY', '')
 
     if not api_key:
         return jsonify({'error': 'الرجاء إدخال مفتاح API'}), 400
@@ -747,7 +818,7 @@ def analyze_market_needs():
         from agents.base import create_completion
 
         async def _run():
-            return await create_completion(provider, model or 'gpt-5.2', api_key, messages, max_tokens=4000, temperature=0.6)
+            return await create_completion(provider, model or get_default_model(provider), api_key, messages, max_tokens=4000, temperature=0.6)
 
         content = asyncio.run(_run())
 

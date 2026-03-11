@@ -46,6 +46,20 @@ def init_db():
     """)
     conn.commit()
 
+    # جدول كاش مصادر البيانات الجديدة مع TTL
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS data_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_name TEXT NOT NULL,
+            sector TEXT NOT NULL,
+            cache_key TEXT NOT NULL UNIQUE,
+            data_json TEXT,
+            fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP NOT NULL
+        )
+    """)
+    conn.commit()
+
     # Migrate existing table if needed
     cursor = conn.execute("PRAGMA table_info(analyses)")
     columns = [row['name'] for row in cursor.fetchall()]

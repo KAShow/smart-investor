@@ -4,6 +4,8 @@ import traceback
 import sys
 from openai import AsyncOpenAI
 import openai
+import anthropic
+from anthropic import AsyncAnthropic
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
 
 # إعداد logging شامل
@@ -25,8 +27,28 @@ PROVIDERS = {
     'gemini': {
         'models': ['gemini-2.5-flash', 'gemini-2.5-pro'],
         'default': 'gemini-2.5-flash'
+    },
+    'anthropic': {
+        'models': ['claude-sonnet-4-20250514'],
+        'default': 'claude-sonnet-4-20250514'
     }
 }
+
+
+import re
+
+
+def _extract_json(text: str) -> str:
+    """Extract JSON from text that may be wrapped in markdown code blocks."""
+    # Try to extract from ```json ... ``` or ``` ... ```
+    match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text)
+    if match:
+        return match.group(1).strip()
+    # Try to find raw JSON object
+    match = re.search(r'(\{[\s\S]*\})', text)
+    if match:
+        return match.group(1).strip()
+    return text.strip()
 
 
 async def create_completion(provider: str, model: str, api_key: str, messages: list, max_tokens: int = 16000, temperature: float = 0.7):
@@ -56,6 +78,39 @@ async def create_completion(provider: str, model: str, api_key: str, messages: l
             return response.text
         except Exception as e:
             logger.error(f"❌ خطأ Gemini: {type(e).__name__}: {e}")
+            logger.error(f"📋 التتبع الكامل:\n{traceback.format_exc()}")
+            raise
+    elif provider == 'anthropic':
+        logger.info("🟣 استخدام مزود Anthropic/Claude")
+        try:
+            client = AsyncAnthropic(api_key=api_key)
+
+            # Anthropic uses separate system parameter
+            system_msg = ""
+            api_messages = []
+            for m in messages:
+                if m['role'] == 'system':
+                    system_msg = m['content']
+                else:
+                    api_messages.append(m)
+
+            logger.info(f"📤 إرسال طلب Claude | model={model}")
+            response = await client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=system_msg,
+                messages=api_messages,
+            )
+
+            content = response.content[0].text
+            logger.info(f"✅ Claude استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
+            logger.info(f"📊 الاستخدام: input={response.usage.input_tokens} | output={response.usage.output_tokens}")
+            # Claude may wrap JSON in markdown code blocks — extract clean JSON
+            content = _extract_json(content)
+            return content
+        except Exception as e:
+            logger.error(f"❌ خطأ Claude: {type(e).__name__}: {e}")
             logger.error(f"📋 التتبع الكامل:\n{traceback.format_exc()}")
             raise
     else:
@@ -115,6 +170,10 @@ class BaseAgent:
             openai.RateLimitError,
             openai.APIConnectionError,
             openai.InternalServerError,
+            anthropic.APITimeoutError,
+            anthropic.RateLimitError,
+            anthropic.APIConnectionError,
+            anthropic.InternalServerError,
         )),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
