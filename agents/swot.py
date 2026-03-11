@@ -24,11 +24,19 @@ SYSTEM_PROMPT = """أنت محلل استراتيجي متخصص في تحليل
   ],
   "threats": [
     {"point": "تهديد", "impact": "high/medium/low"}
+  ],
+  "swot_summary": [
+    "أبرز قوة يمكن استغلالها فوراً: ...",
+    "أخطر ضعف يجب معالجته قبل البدء: ...",
+    "أكبر فرصة في السوق الآن: ...",
+    "أخطر تهديد يجب الاستعداد له: ...",
+    "القرار المصيري: ... (الشي اللي لو ما انسوى، المشروع بيفشل)"
   ]
 }
 
-- كل قسم يحتوي 3-5 نقاط
+- كل قسم (strengths/weaknesses/opportunities/threats) يحتوي 3-5 نقاط
 - impact يحدد مدى تأثير النقطة (high/medium/low)
+- swot_summary يحتوي 3-5 نقاط مباشرة — هذه "الزبدة" التي يحتاجها صانع القرار
 - لا تضف أي نص خارج JSON"""
 
 
@@ -100,4 +108,4 @@ class SwotAgent:
             json.loads(content)
             return content
         except json.JSONDecodeError:
-            return json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": []}, ensure_ascii=False)
+            return json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": [], "swot_summary": []}, ensure_ascii=False)

@@ -10,7 +10,8 @@
       "Bash(/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe -c \":*)",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(\"c:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.venv\\\\Scripts\\\\python.exe\" -c:*)"
+      "Bash(\"c:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.venv\\\\Scripts\\\\python.exe\" -c:*)",
+      "Read(//c/Users/Huawei/.gemini/antigravity/scratch/smart-investor/**)"
     ]
   }
 }

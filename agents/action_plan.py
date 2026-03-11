@@ -54,6 +54,7 @@ class ActionPlanAgent:
             openai.APITimeoutError,
             openai.RateLimitError,
             openai.APIConnectionError,
+            openai.InternalServerError,
             anthropic.APITimeoutError,
             anthropic.RateLimitError,
             anthropic.APIConnectionError,

@@ -73,6 +73,11 @@ def init_db():
         'user_rating': 'INTEGER',
         'user_feedback': 'TEXT',
         'sector': 'TEXT DEFAULT \'general\'',
+        'requester_name': 'TEXT',
+        'requester_email': 'TEXT',
+        'requester_company': 'TEXT',
+        'report_number': 'TEXT',
+        'valid_until': 'TIMESTAMP',
     }
     for col, col_type in new_columns.items():
         if col not in columns:
@@ -81,20 +86,38 @@ def init_db():
     conn.close()
 
 
+def _generate_report_number(conn):
+    """Generate sequential report number: BSI-YYYY-XXXXX."""
+    from datetime import datetime
+    year = datetime.now().year
+    row = conn.execute(
+        "SELECT COUNT(*) as c FROM analyses WHERE report_number IS NOT NULL AND report_number LIKE ?",
+        (f"BSI-{year}-%",)
+    ).fetchone()
+    seq = (row['c'] if row else 0) + 1
+    return f"BSI-{year}-{seq:05d}"
+
+
 def save_analysis(idea, market_analysis, financial_analysis, competitive_analysis,
                   final_verdict, legal_analysis='', technical_analysis='',
                   brokerage_models_analysis='', swot_analysis='', action_plan='',
-                  sector='general'):
+                  sector='general', requester_name='', requester_email='',
+                  requester_company=''):
+    from datetime import datetime, timedelta
     share_token = uuid.uuid4().hex[:12]
+    valid_until = (datetime.now() + timedelta(days=180)).strftime('%Y-%m-%d %H:%M:%S')
     conn = get_connection()
+    report_number = _generate_report_number(conn)
     cursor = conn.execute(
         """INSERT INTO analyses (idea, market_analysis, financial_analysis, competitive_analysis,
            legal_analysis, technical_analysis, brokerage_models_analysis,
-           swot_analysis, action_plan, final_verdict, share_token, sector)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           swot_analysis, action_plan, final_verdict, share_token, sector,
+           requester_name, requester_email, requester_company, report_number, valid_until)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (idea, market_analysis, financial_analysis, competitive_analysis,
          legal_analysis, technical_analysis, brokerage_models_analysis,
-         swot_analysis, action_plan, final_verdict, share_token, sector)
+         swot_analysis, action_plan, final_verdict, share_token, sector,
+         requester_name, requester_email, requester_company, report_number, valid_until)
     )
     analysis_id = cursor.lastrowid
     conn.commit()
@@ -104,7 +127,7 @@ def save_analysis(idea, market_analysis, financial_analysis, competitive_analysi
 
 def get_all_analyses():
     conn = get_connection()
-    rows = conn.execute("SELECT id, idea, created_at FROM analyses ORDER BY created_at DESC").fetchall()
+    rows = conn.execute("SELECT id, idea, created_at, report_number FROM analyses ORDER BY created_at DESC").fetchall()
     conn.close()
     return [dict(row) for row in rows]
 

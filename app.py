@@ -5,6 +5,7 @@ import os
 import queue
 import threading
 import traceback
+import uuid
 import webbrowser
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response, send_file
@@ -18,6 +19,8 @@ from database import (init_db, save_analysis, get_all_analyses, get_analysis,
                       get_bahrain_data_status)
 from bahrain_data import BahrainDataService, SECTORS
 from data_sources import DataAggregator
+from data_sources.sijilat import SijilatSource
+from agents.competitor_enrichment import CompetitorEnrichment
 from web_search import search_web
 
 logger = logging.getLogger(__name__)
@@ -41,6 +44,9 @@ data_aggregator = DataAggregator()
 
 # تهيئة قاعدة البيانات
 init_db()
+
+# Pending analysis params store (token → params dict, auto-expires on use)
+_pending_analyses = {}
 
 
 DEFAULT_MODELS = {
@@ -76,18 +82,48 @@ def shared_view(token):
     return render_template('shared.html', analysis=analysis)
 
 
+@app.route('/api/prepare-analysis', methods=['POST'])
+def prepare_analysis():
+    """Store analysis params server-side and return a short token for SSE."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'طلب غير صالح'}), 400
+    token = uuid.uuid4().hex[:16]
+    _pending_analyses[token] = data
+    return jsonify({'token': token})
+
+
 @app.route('/analyze-stream')
 def analyze_stream():
-    sector = request.args.get('sector', '').strip()
-    provider = request.args.get('provider', 'openai').strip()
-    model = request.args.get('model', '').strip() or get_default_model(provider)
-    synthesizer_provider = request.args.get('synthesizer_provider', '').strip() or provider
-    synthesizer_model = request.args.get('synthesizer_model', '').strip() or get_default_model(synthesizer_provider)
-    budget = request.args.get('budget', '').strip()
-    notes = request.args.get('notes', '').strip()
+    # Support both: token-based (new) and direct query params (legacy)
+    token = request.args.get('token', '').strip()
+    if token and token in _pending_analyses:
+        params = _pending_analyses.pop(token)
+        sector = params.get('sector', '').strip()
+        provider = params.get('provider', 'openai').strip()
+        model = params.get('model', '').strip() or get_default_model(provider)
+        synthesizer_provider = params.get('synthesizer_provider', '').strip() or provider
+        synthesizer_model = params.get('synthesizer_model', '').strip() or get_default_model(synthesizer_provider)
+        budget = params.get('budget', '').strip()
+        notes = params.get('notes', '').strip()
+        requester_name = params.get('requester_name', '').strip()
+        requester_email = params.get('requester_email', '').strip()
+        requester_company = params.get('requester_company', '').strip()
+        api_key = params.get('api_key', '').strip()
+    else:
+        sector = request.args.get('sector', '').strip()
+        provider = request.args.get('provider', 'openai').strip()
+        model = request.args.get('model', '').strip() or get_default_model(provider)
+        synthesizer_provider = request.args.get('synthesizer_provider', '').strip() or provider
+        synthesizer_model = request.args.get('synthesizer_model', '').strip() or get_default_model(synthesizer_provider)
+        budget = request.args.get('budget', '').strip()
+        notes = request.args.get('notes', '').strip()
+        requester_name = request.args.get('requester_name', '').strip()
+        requester_email = request.args.get('requester_email', '').strip()
+        requester_company = request.args.get('requester_company', '').strip()
+        api_key = request.args.get('api_key', '').strip()
 
     # تحديد مفتاح API حسب المزود
-    api_key = request.args.get('api_key', '').strip()
     if not api_key:
         if provider == 'anthropic':
             api_key = os.environ.get('ANTHROPIC_API_KEY', '')
@@ -159,6 +195,23 @@ def analyze_stream():
                 logger.warning(f"⚠️ فشل جلب البيانات الإضافية: {e}")
                 aggregated = {}
 
+            # جلب وإثراء بيانات المنافسين
+            sijilat_source = SijilatSource()
+            competitors_raw = sijilat_source.get_competitors(sector)
+            competitors_enriched = competitors_raw  # default: no enrichment
+            try:
+                enrichment = CompetitorEnrichment()
+                competitors_enriched = enrichment.enrich_batch(competitors_raw, sector, max_enrich=8)
+                logger.info(f"✅ تم إثراء {len(competitors_enriched)} منافس لقطاع '{sector}'")
+            except Exception as e:
+                logger.warning(f"⚠️ فشل إثراء المنافسين: {e}")
+
+            # إرسال بيانات المنافسين للواجهة
+            event_queue.put(("competitors_found", json.dumps({
+                "count": len(competitors_enriched),
+                "competitors": competitors_enriched,
+            }, ensure_ascii=False)))
+
             # بناء سياق مخصص لكل وكيل
             market_ctx = market_context + data_aggregator.build_agent_context(sector, "market", aggregated)
             financial_ctx = market_context + data_aggregator.build_agent_context(sector, "financial", aggregated)
@@ -166,6 +219,18 @@ def analyze_stream():
             legal_ctx = market_context + data_aggregator.build_agent_context(sector, "legal", aggregated)
             technical_ctx = market_context + data_aggregator.build_agent_context(sector, "technical", aggregated)
             brokerage_ctx = market_context + data_aggregator.build_agent_context(sector, "brokerage_models", aggregated)
+
+            # إضافة بيانات المنافسين لسياق وكيل المنافسة
+            if competitors_enriched:
+                comp_lines = ["\n\n══ بيانات المنافسين الفعليين من السجل التجاري ══"]
+                for i, c in enumerate(competitors_enriched, 1):
+                    line = f"{i}. {c.get('name_ar', '')} ({c.get('name_en', '')}) — {c.get('activity', '')} | تأسست: {c.get('established', '?')} | الحجم: {c.get('size', '?')} | المحافظة: {c.get('governorate', '?')} | النوع: {c.get('entity_type', '?')}"
+                    if c.get('website'):
+                        line += f" | الموقع: {c['website']}"
+                    if c.get('web_description'):
+                        line += f"\n   وصف: {c['web_description']}"
+                    comp_lines.append(line)
+                competitive_ctx += "\n".join(comp_lines)
 
             # إرسال خريطة مصادر البيانات لكل وكيل
             attribution = data_aggregator.build_data_attribution(aggregated)
@@ -191,11 +256,16 @@ def analyze_stream():
         results = {}
         # انتظار نتائج الوكلاء الستة
         while True:
-            name, data = event_queue.get()
+            try:
+                name, data = event_queue.get(timeout=300)
+            except queue.Empty:
+                logger.error("❌ انتهت مهلة انتظار الوكلاء (5 دقائق)")
+                yield f"event: error\ndata: {json.dumps({'error': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
+                return
             if name == "agents_done":
                 break
-            if name == "data_sources_used":
-                yield f"event: data_sources_used\ndata: {data}\n\n"
+            if name in ("data_sources_used", "competitors_found"):
+                yield f"event: {name}\ndata: {data}\n\n"
             else:
                 results[name] = data
                 yield f"event: {name}\ndata: {json.dumps({'content': data}, ensure_ascii=False)}\n\n"
@@ -229,7 +299,11 @@ def analyze_stream():
 
         t = threading.Thread(target=synth_thread)
         t.start()
-        status, verdict = synth_queue.get()
+        try:
+            status, verdict = synth_queue.get(timeout=300)
+        except queue.Empty:
+            logger.error("❌ انتهت مهلة انتظار المُجمّع (5 دقائق)")
+            status, verdict = "error", "انتهت مهلة التجميع"
 
         if status == "error":
             verdict = json.dumps({"summary": verdict, "consensus": [], "conflicts": [], "verdict": "خطأ", "overall_score": 0, "score_justification": "", "recommended_model": "", "model_justification": "", "advice": []}, ensure_ascii=False)
@@ -257,7 +331,12 @@ def analyze_stream():
 
         et = threading.Thread(target=run_extras)
         et.start()
-        _, swot_result, plan_result = extras_queue.get()
+        try:
+            _, swot_result, plan_result = extras_queue.get(timeout=300)
+        except queue.Empty:
+            logger.error("❌ انتهت مهلة SWOT/ActionPlan (5 دقائق)")
+            swot_result = json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": [], "swot_summary": []}, ensure_ascii=False)
+            plan_result = json.dumps({"executive_summary": "انتهت مهلة التحليل", "phases": [], "total_budget": "", "key_metrics": [], "critical_success_factors": [], "risk_mitigation": []}, ensure_ascii=False)
 
         yield f"event: swot_analysis\ndata: {json.dumps({'content': swot_result}, ensure_ascii=False)}\n\n"
         yield f"event: action_plan\ndata: {json.dumps({'content': plan_result}, ensure_ascii=False)}\n\n"
@@ -274,13 +353,18 @@ def analyze_stream():
             swot_analysis=swot_result,
             action_plan=plan_result,
             final_verdict=verdict,
-            sector=sector
+            sector=sector,
+            requester_name=requester_name,
+            requester_email=requester_email,
+            requester_company=requester_company,
         )
 
         # إرسال معرف التحليل
         analysis = get_analysis(analysis_id)
         share_token = analysis.get('share_token', '') if analysis else ''
-        yield f"event: done\ndata: {json.dumps({'status': 'completed', 'analysis_id': analysis_id, 'share_token': share_token}, ensure_ascii=False)}\n\n"
+        report_number = analysis.get('report_number', '') if analysis else ''
+        valid_until = analysis.get('valid_until', '') if analysis else ''
+        yield f"event: done\ndata: {json.dumps({'status': 'completed', 'analysis_id': analysis_id, 'share_token': share_token, 'report_number': report_number, 'valid_until': valid_until}, ensure_ascii=False)}\n\n"
 
     return Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
@@ -314,6 +398,8 @@ def history_delete(analysis_id):
 @app.route('/rate/<int:analysis_id>', methods=['POST'])
 def rate(analysis_id):
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'طلب غير صالح'}), 400
     rating = data.get('rating', 0)
     feedback = data.get('feedback', '')
     if not 1 <= rating <= 5:
@@ -542,6 +628,8 @@ def _build_followup_context(analysis):
 @app.route('/ask-followup', methods=['POST'])
 def ask_followup():
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'طلب غير صالح'}), 400
     question = data.get('question', '').strip()
     analysis_id = data.get('analysis_id')
     provider = data.get('provider', 'openai').strip()
@@ -646,7 +734,7 @@ def ask_followup():
                 system=system_msg,
                 messages=api_messages,
             )
-            answer = response.content[0].text or "لم أتمكن من الإجابة"
+            answer = (response.content[0].text if response.content else None) or "لم أتمكن من الإجابة"
         else:
             from openai import OpenAI
             client = OpenAI(api_key=api_key)
@@ -663,7 +751,7 @@ def ask_followup():
     except Exception as e:
         logger.error(f"❌ خطأ في سؤال المتابعة: {type(e).__name__}: {e}")
         logger.error(f"📋 التتبع:\n{traceback.format_exc()}")
-        return jsonify({'answer': f"حدث خطأ: {type(e).__name__} - {str(e)}"})
+        return jsonify({'answer': f"حدث خطأ: {type(e).__name__} - {str(e)}"}), 500
 
 
 @app.route('/export-pdf/<int:analysis_id>')
@@ -675,20 +763,48 @@ def export_pdf(analysis_id):
     # Generate HTML report
     html = render_template('report.html', analysis=analysis)
 
-    # Try weasyprint, fallback to simple HTML download
-    try:
-        from weasyprint import HTML
-        import tempfile
-        pdf_path = Path(tempfile.gettempdir()) / f"oracle_report_{analysis_id}.pdf"
-        HTML(string=html).write_pdf(str(pdf_path))
-        return send_file(str(pdf_path), as_attachment=True,
-                        download_name=f'oracle_report_{analysis_id}.pdf',
-                        mimetype='application/pdf')
-    except ImportError:
-        # Fallback: return HTML file for browser print
-        return Response(html, mimetype='text/html', headers={
-            'Content-Disposition': f'inline; filename=oracle_report_{analysis_id}.html'
-        })
+    # Try weasyprint, fallback to browser print-to-PDF
+    report_num = analysis.get('report_number', f'report_{analysis_id}')
+    if not getattr(app, '_weasyprint_broken', False):
+        try:
+            import io, contextlib
+            with contextlib.redirect_stderr(io.StringIO()):
+                from weasyprint import HTML as WeasyprintHTML
+            import tempfile
+            pdf_path = Path(tempfile.gettempdir()) / f"bsi_{report_num}.pdf"
+            WeasyprintHTML(string=html).write_pdf(str(pdf_path))
+            return send_file(str(pdf_path), as_attachment=True,
+                            download_name=f'BSI_{report_num}.pdf',
+                            mimetype='application/pdf')
+        except Exception as pdf_err:
+            app._weasyprint_broken = True
+            logger.warning(f"weasyprint PDF failed ({type(pdf_err).__name__}), will use browser print for all exports")
+
+    # Fallback: inject print toolbar into the HTML report
+    print_bar = '''<div id="bsi-print-bar" style="position:fixed;top:0;left:0;right:0;z-index:9999;
+        background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;padding:12px 24px;
+        display:flex;align-items:center;justify-content:space-between;font-family:Tajawal,sans-serif;
+        box-shadow:0 2px 8px rgba(0,0,0,0.3);direction:rtl">
+        <span style="font-size:14px;font-weight:600">&#128196; لتصدير PDF: اختر "Save as PDF" من نافذة الطباعة</span>
+        <div>
+            <button onclick="document.getElementById(\'bsi-print-bar\').style.display=\'none\';window.print()"
+                style="background:#fff;color:#1565C0;border:none;padding:8px 24px;border-radius:6px;
+                font-weight:700;cursor:pointer;font-size:14px;font-family:Tajawal,sans-serif;margin-left:8px">
+                &#128424; طباعة / تصدير PDF
+            </button>
+            <button onclick="document.getElementById(\'bsi-print-bar\').style.display=\'none\'"
+                style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.5);
+                padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-family:Tajawal,sans-serif">
+                &#10005; إغلاق
+            </button>
+        </div>
+    </div>
+    <style>@media print { #bsi-print-bar { display: none !important; } body { padding-top: 0 !important; } }
+    @media screen { body { padding-top: 60px; } }</style>'''
+    html = html.replace('<body>', f'<body>{print_bar}', 1)
+    return Response(html, mimetype='text/html', headers={
+        'Content-Disposition': f'inline; filename=BSI_{report_num}.html'
+    })
 
 
 @app.route('/api-key/status')
@@ -700,6 +816,8 @@ def api_key_status():
 @app.route('/api-key/save', methods=['POST'])
 def save_api_key():
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'طلب غير صالح'}), 400
     api_key = data.get('api_key', '')
 
     if not api_key:
@@ -786,6 +904,8 @@ def data_sources_fetch():
 def analyze_market_needs():
     """تحليل فرص الوساطة التجارية بالذكاء الاصطناعي - يحلل البيانات ويقترح نماذج وساطة."""
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'طلب غير صالح'}), 400
     sector = data.get('sector', '').strip()
     budget = data.get('budget', '').strip()
     provider = data.get('provider', 'openai').strip()

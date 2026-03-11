@@ -74,8 +74,13 @@ async def create_completion(provider: str, model: str, api_key: str, messages: l
             user_msgs = [m['content'] for m in messages if m['role'] == 'user']
             logger.info(f"📤 إرسال طلب Gemini | model={model}")
             response = await gen_model.generate_content_async(user_msgs[-1] if user_msgs else '')
-            logger.info(f"✅ Gemini استجاب بنجاح | طول الاستجابة: {len(response.text)} حرف")
-            return response.text
+            content = getattr(response, 'text', None) or ''
+            if not content:
+                logger.warning("⚠️ Gemini أرجع استجابة فارغة")
+                return json.dumps({"title": "خطأ", "summary": "استجابة فارغة من Gemini", "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)
+            logger.info(f"✅ Gemini استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
+            content = _extract_json(content)
+            return content
         except Exception as e:
             logger.error(f"❌ خطأ Gemini: {type(e).__name__}: {e}")
             logger.error(f"📋 التتبع الكامل:\n{traceback.format_exc()}")
@@ -103,7 +108,10 @@ async def create_completion(provider: str, model: str, api_key: str, messages: l
                 messages=api_messages,
             )
 
-            content = response.content[0].text
+            content = (response.content[0].text if response.content else None) or ''
+            if not content:
+                logger.warning("⚠️ Claude أرجع استجابة فارغة")
+                return json.dumps({"title": "خطأ", "summary": "استجابة فارغة من Claude", "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)
             logger.info(f"✅ Claude استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
             logger.info(f"📊 الاستخدام: input={response.usage.input_tokens} | output={response.usage.output_tokens}")
             # Claude may wrap JSON in markdown code blocks — extract clean JSON

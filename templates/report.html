@@ -2,156 +2,160 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تقرير دراسة جدوى الوساطة التجارية - البحرين</title>
+    <title>تقرير دراسة جدوى الوساطة التجارية - البحرين | {{ analysis.report_number or '' }}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Alexandria:wght@300;400;500;700;900&display=swap');
+        @page { size: A4; margin: 2cm; }
+        @page :first { margin-top: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Alexandria', sans-serif; background: #fff; color: #1a1a1a; padding: 40px; direction: rtl; line-height: 1.8; }
-        .header { text-align: center; border-bottom: 3px solid #CE1126; padding-bottom: 20px; margin-bottom: 30px; }
-        .header h1 { font-size: 28px; color: #CE1126; margin-bottom: 5px; }
-        .header .date { color: #888; font-size: 14px; }
-        .idea-box { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 12px; padding: 20px; margin-bottom: 30px; }
-        .idea-box h2 { color: #9B0E1D; font-size: 16px; margin-bottom: 8px; }
-        .idea-box p { font-size: 15px; }
-        .section { margin-bottom: 30px; page-break-inside: avoid; }
-        .section h2 { font-size: 20px; color: #CE1126; border-bottom: 2px solid #fde2e2; padding-bottom: 8px; margin-bottom: 15px; }
-        .section h3 { font-size: 16px; color: #334155; margin-bottom: 10px; }
-        .agent-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 15px; }
-        .agent-card .title { font-weight: 700; font-size: 17px; margin-bottom: 8px; }
-        .agent-card .score { display: inline-block; background: #CE1126; color: #fff; padding: 2px 12px; border-radius: 20px; font-size: 14px; font-weight: 700; }
-        .agent-card ul { padding-right: 20px; margin-top: 10px; }
-        .agent-card li { margin-bottom: 6px; font-size: 14px; }
-        .verdict-box { background: #fefce8; border: 2px solid #fbbf24; border-radius: 12px; padding: 25px; text-align: center; margin: 30px 0; }
-        .verdict-box .verdict { font-size: 24px; font-weight: 900; color: #b45309; }
-        .verdict-box .score-big { font-size: 48px; font-weight: 900; color: #d97706; margin: 10px 0; }
-        .verdict-box .recommended-model { background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; padding: 10px; margin-top: 15px; font-size: 14px; }
-        .swot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .swot-cell { padding: 15px; border-radius: 10px; }
-        .swot-s { background: #dcfce7; border: 1px solid #86efac; }
-        .swot-w { background: #fef2f2; border: 1px solid #fca5a5; }
-        .swot-o { background: #eff6ff; border: 1px solid #93c5fd; }
-        .swot-t { background: #fefce8; border: 1px solid #fde047; }
-        .swot-cell h4 { font-size: 15px; margin-bottom: 8px; font-weight: 700; }
-        .swot-cell ul { padding-right: 15px; font-size: 13px; }
-        .swot-cell li { margin-bottom: 4px; }
-        .phase { background: #f8fafc; border-right: 4px solid #CE1126; padding: 15px; margin-bottom: 12px; border-radius: 0 8px 8px 0; }
-        .phase h4 { color: #9B0E1D; margin-bottom: 5px; }
-        .phase .duration { color: #64748b; font-size: 13px; }
-        .models-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .model-card { background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; padding: 12px; }
-        .model-card .model-name { font-weight: 700; font-size: 14px; color: #be185d; }
-        .model-card .model-score { font-size: 13px; color: #9d174d; }
-        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
-        @media print { body { padding: 20px; } .section { page-break-inside: avoid; } }
+        body { font-family: 'Tajawal', 'Alexandria', 'Arial', sans-serif; background: #fff; color: #333; direction: rtl; font-size: 11pt; line-height: 1.6; }
+
+        /* Cover Page */
+        .cover-page { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; background: linear-gradient(135deg, #f8f9fa 0%, #e8f4fd 50%, #f8f9fa 100%); page-break-after: always; padding: 40px; }
+        .cover-logo { font-size: 48pt; margin-bottom: 10px; }
+        .cover-title { font-size: 28pt; font-weight: 900; color: #1565C0; margin-bottom: 5px; }
+        .cover-subtitle { font-size: 14pt; color: #666; margin-bottom: 40px; }
+        .cover-divider { width: 200px; height: 3px; background: linear-gradient(90deg, #CE1126, #1565C0); margin: 0 auto 30px; border-radius: 2px; }
+        .cover-info { font-size: 13pt; color: #444; line-height: 2.2; }
+        .cover-info strong { color: #1565C0; }
+        .cover-meta { margin-top: 40px; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; display: inline-block; }
+        .cover-meta table { border-collapse: collapse; }
+        .cover-meta td { padding: 4px 16px; font-size: 11pt; }
+        .cover-meta td:first-child { color: #888; text-align: left; }
+        .cover-meta td:last-child { font-weight: 600; color: #333; }
+        .cover-disclaimer { margin-top: 30px; font-size: 9pt; color: #999; max-width: 500px; }
+
+        /* Headings */
+        h1 { color: #1565C0; font-size: 18pt; border-bottom: 2px solid #1565C0; padding-bottom: 8px; margin-bottom: 16px; }
+        h2 { color: #0D47A1; font-size: 14pt; margin-bottom: 10px; margin-top: 20px; }
+        h3 { color: #334155; font-size: 12pt; margin-bottom: 8px; }
+
+        /* Section */
+        .section { margin-bottom: 28px; page-break-inside: avoid; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
+        th { background: #1565C0; color: white; padding: 8px 12px; text-align: right; font-weight: 600; }
+        td { padding: 6px 12px; border-bottom: 1px solid #E0E0E0; }
+        tr:nth-child(even) { background: #F5F5F5; }
+        .num-cell { font-family: 'Courier New', monospace; font-weight: 600; direction: ltr; text-align: left; }
+
+        /* Verdict */
+        .verdict-box { background: linear-gradient(135deg, #E3F2FD, #BBDEFB); border-radius: 12px; padding: 24px; text-align: center; margin: 20px 0; }
+        .verdict-score { font-size: 48pt; font-weight: 900; color: #1565C0; }
+        .verdict-label { font-size: 18pt; font-weight: 700; color: #0D47A1; margin-top: 8px; }
+        .verdict-summary { font-size: 11pt; color: #444; margin-top: 12px; line-height: 1.7; }
+        .recommended-model { background: #FDF2F8; border: 1px solid #F9A8D4; border-radius: 8px; padding: 12px; margin-top: 16px; text-align: right; }
+        .recommended-model strong { color: #BE185D; }
+
+        /* Advisor Opinion */
+        .advisor-opinion { background: #F3E5F5; border-right: 4px solid #7B1FA2; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+        .advisor-opinion h2 { color: #7B1FA2; border-bottom: none; }
+        .advisor-opinion p { font-size: 11pt; color: #333; line-height: 1.8; white-space: pre-line; }
+
+        /* SWOT */
+        .swot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+        .swot-s { background: #E8F5E9; padding: 12px; border-radius: 8px; }
+        .swot-w { background: #FFEBEE; padding: 12px; border-radius: 8px; }
+        .swot-o { background: #E3F2FD; padding: 12px; border-radius: 8px; }
+        .swot-t { background: #FFF8E1; padding: 12px; border-radius: 8px; }
+        .swot-cell h4 { font-size: 12pt; margin-bottom: 6px; font-weight: 700; }
+        .swot-cell ul { padding-right: 15px; font-size: 10pt; }
+        .swot-cell li { margin-bottom: 3px; }
+        .swot-summary { background: #FFF3E0; border-right: 4px solid #FF9800; padding: 14px; margin-top: 12px; border-radius: 0 8px 8px 0; }
+        .swot-summary h3 { color: #E65100; }
+        .swot-summary li { margin-bottom: 4px; font-size: 10pt; }
+
+        /* Highlights */
+        .highlight-positive { background: #E8F5E9; border-right: 3px solid #4CAF50; padding: 8px 12px; margin: 6px 0; border-radius: 4px; }
+        .highlight-warning  { background: #FFF8E1; border-right: 3px solid #FFC107; padding: 8px 12px; margin: 6px 0; border-radius: 4px; }
+        .highlight-danger   { background: #FFEBEE; border-right: 3px solid #F44336; padding: 8px 12px; margin: 6px 0; border-radius: 4px; }
+        .highlight-info     { background: #E3F2FD; border-right: 3px solid #2196F3; padding: 8px 12px; margin: 6px 0; border-radius: 4px; }
+
+        /* Agent Cards */
+        .agent-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 14px; page-break-inside: avoid; }
+        .agent-card .agent-title { font-weight: 700; font-size: 13pt; margin-bottom: 6px; }
+        .agent-card .score-badge { display: inline-block; color: #fff; padding: 2px 12px; border-radius: 20px; font-size: 11pt; font-weight: 700; }
+        .agent-card ul { padding-right: 18px; margin-top: 8px; }
+        .agent-card li { margin-bottom: 5px; font-size: 10pt; }
+        .agent-card .rec { margin-top: 10px; font-weight: 600; color: #475569; font-size: 10pt; }
+
+        /* Phase / Action Plan */
+        .phase { background: #f8fafc; border-right: 4px solid #CE1126; padding: 14px; margin-bottom: 10px; border-radius: 0 8px 8px 0; }
+        .phase h4 { color: #9B0E1D; margin-bottom: 4px; font-size: 11pt; }
+        .phase .duration { color: #64748b; font-size: 10pt; }
+
+        /* Models */
+        .models-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .model-card { background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; padding: 10px; }
+        .model-card .model-name { font-weight: 700; font-size: 11pt; color: #be185d; }
+
+        /* Footer */
+        .page-footer { text-align: center; margin-top: 30px; padding-top: 16px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 9pt; }
+        @media print {
+            body { padding: 0; }
+            .section { page-break-inside: avoid; }
+            .cover-page { page-break-after: always; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>دراسة جدوى الوساطة التجارية 🇧🇭</h1>
-        <p>تقرير دراسة جدوى شامل</p>
-        <p class="date">{{ analysis.created_at }}</p>
-    </div>
 
-    <div class="idea-box">
-        <h2>موضوع الدراسة</h2>
-        <p>{{ analysis.idea }}</p>
-    </div>
-
-    {% set agents = [
-        ('تحليل الطلب على الوساطة', analysis.market_analysis, '#3b82f6'),
-        ('التحليل المالي للوساطة', analysis.financial_analysis, '#10b981'),
-        ('تحليل المنافسة في الوساطة', analysis.competitive_analysis, '#8b5cf6'),
-        ('التحليل القانوني للوساطة', analysis.legal_analysis, '#f59e0b'),
-        ('التحليل التقني للمنصة', analysis.technical_analysis, '#06b6d4')
-    ] %}
-
-    <div class="section">
-        <h2>تحليلات الوكلاء المتخصصين</h2>
-        {% for name, data_str, color in agents %}
-        {% if data_str %}
-        <div class="agent-card">
-            <div class="title" style="color: {{ color }}">{{ name }}</div>
-            {% set data = data_str | tojson %}
-            <script>
-                (function() {
-                    try {
-                        var d = JSON.parse({{ data }});
-                        var card = document.currentScript.parentElement;
-                        var html = '';
-                        if (d.score) html += '<span class="score" style="background:{{ color }}">' + d.score + '/10</span>';
-                        if (d.summary) html += '<p style="margin-top:10px">' + d.summary + '</p>';
-                        if (d.details && d.details.length) {
-                            html += '<ul>';
-                            d.details.forEach(function(det) { html += '<li>' + det + '</li>'; });
-                            html += '</ul>';
-                        }
-                        if (d.recommendation) html += '<p style="margin-top:10px;font-weight:600;color:#475569">التوصية: ' + d.recommendation + '</p>';
-                        card.innerHTML += html;
-                    } catch(e) {}
-                })();
-            </script>
+    <!-- Cover Page -->
+    <div class="cover-page">
+        <div class="cover-logo">&#127974;</div>
+        <div class="cover-title">Bahrain Smart Investor AI</div>
+        <div class="cover-subtitle">&#1605;&#1587;&#1578;&#1579;&#1605;&#1585; &#1575;&#1604;&#1576;&#1581;&#1585;&#1610;&#1606; &#1575;&#1604;&#1584;&#1603;&#1610;</div>
+        <div class="cover-divider"></div>
+        <div class="cover-info">
+            <p><strong>موضوع الدراسة:</strong> {{ analysis.idea }}</p>
         </div>
-        {% endif %}
-        {% endfor %}
-    </div>
-
-    {% if analysis.brokerage_models_analysis %}
-    <div class="section">
-        <h2 style="color: #be185d">مقارنة نماذج الوساطة</h2>
-        <div id="brokerage-models-content">
-            <script>
-                (function() {
-                    try {
-                        var d = JSON.parse({{ analysis.brokerage_models_analysis | tojson }});
-                        var el = document.getElementById('brokerage-models-content');
-                        var html = '';
-                        if (d.summary) html += '<p style="margin-bottom:15px">' + d.summary + '</p>';
-                        if (d.models && d.models.length) {
-                            html += '<div class="models-grid">';
-                            d.models.forEach(function(m) {
-                                html += '<div class="model-card">';
-                                html += '<div class="model-name">' + (m.name || '') + '</div>';
-                                if (m.score) html += '<div class="model-score">التقييم: ' + m.score + '/10 | ملاءمة: ' + (m.fit_for_bahrain || '') + '</div>';
-                                if (m.pros && m.pros.length) {
-                                    html += '<ul style="padding-right:15px;margin-top:5px;font-size:12px">';
-                                    m.pros.forEach(function(p) { html += '<li style="color:#16a34a">+ ' + p + '</li>'; });
-                                    html += '</ul>';
-                                }
-                                if (m.cons && m.cons.length) {
-                                    html += '<ul style="padding-right:15px;font-size:12px">';
-                                    m.cons.forEach(function(c) { html += '<li style="color:#dc2626">- ' + c + '</li>'; });
-                                    html += '</ul>';
-                                }
-                                html += '</div>';
-                            });
-                            html += '</div>';
-                        }
-                        if (d.recommended_model) html += '<p style="margin-top:15px;font-weight:700;color:#be185d">النموذج الموصى به: ' + d.recommended_model + '</p>';
-                        if (d.recommendation_reason) html += '<p style="font-size:14px;color:#475569">' + d.recommendation_reason + '</p>';
-                        el.innerHTML += html;
-                    } catch(e) {}
-                })();
-            </script>
+        <div class="cover-meta">
+            <table>
+                {% if analysis.requester_name %}
+                <tr><td>مقدم الطلب:</td><td>{{ analysis.requester_name }}</td></tr>
+                {% endif %}
+                {% if analysis.requester_company %}
+                <tr><td>الشركة:</td><td>{{ analysis.requester_company }}</td></tr>
+                {% endif %}
+                {% if analysis.report_number %}
+                <tr><td>رقم التقرير:</td><td style="font-family:monospace">{{ analysis.report_number }}</td></tr>
+                {% endif %}
+                <tr><td>تاريخ الإصدار:</td><td>{{ analysis.created_at[:10] if analysis.created_at else '' }}</td></tr>
+                {% if analysis.valid_until %}
+                <tr><td>صالح حتى:</td><td>{{ analysis.valid_until[:10] }}</td></tr>
+                {% endif %}
+            </table>
         </div>
+        <p class="cover-disclaimer">نصيحة استثمارية سريعة — مدعومة بالذكاء الاصطناعي وبيانات السوق البحريني | يُنصح بمراجعة مستشار مالي معتمد قبل اتخاذ قرارات استثمارية</p>
     </div>
-    {% endif %}
 
+    <!-- HTML escape helper -->
+    <script>function _e(s){if(!s)return '';var d=document.createElement('div');d.appendChild(document.createTextNode(String(s)));return d.innerHTML;}</script>
+
+    <!-- Executive Summary -->
     {% if analysis.final_verdict %}
     <div class="section">
-        <h2>الحكم النهائي</h2>
+        <h1>الملخص التنفيذي</h1>
         <div class="verdict-box" id="verdict-box">
             <script>
                 (function() {
                     try {
                         var d = JSON.parse({{ analysis.final_verdict | tojson }});
                         var box = document.getElementById('verdict-box');
-                        var html = '<div class="verdict">' + (d.verdict || '') + '</div>' +
-                            '<div class="score-big">' + (d.overall_score || 0) + '<span style="font-size:20px;color:#888">/10</span></div>' +
-                            '<p>' + (d.summary || '') + '</p>';
+                        var sc = d.overall_score || 0;
+                        var color = sc >= 7 ? '#2E7D32' : sc >= 4 ? '#F57F17' : '#C62828';
+                        var html = '<div class="verdict-score" style="color:'+color+'">' + sc + '<span style="font-size:18pt;color:#888">/10</span></div>';
+                        html += '<div class="verdict-label">' + _e(d.verdict || '') + '</div>';
+                        if (d.summary) html += '<div class="verdict-summary">' + _e(d.summary) + '</div>';
                         if (d.recommended_model) {
-                            html += '<div class="recommended-model"><strong>النموذج الموصى به:</strong> ' + d.recommended_model;
-                            if (d.model_justification) html += '<br><span style="color:#6b7280">' + d.model_justification + '</span>';
+                            html += '<div class="recommended-model"><strong>النموذج الموصى به:</strong> ' + _e(d.recommended_model);
+                            if (d.model_justification) html += '<br><span style="color:#6b7280;font-size:10pt">' + _e(d.model_justification) + '</span>';
                             html += '</div>';
+                        }
+                        // Advisor opinion
+                        if (d.advisor_opinion) {
+                            html += '<div style="text-align:right;margin-top:20px" class="advisor-opinion"><h2>&#128104;&#8205;&#128188; رأي المستشار AI</h2><p>' + _e(d.advisor_opinion) + '</p></div>';
                         }
                         box.innerHTML = html;
                     } catch(e) {}
@@ -161,57 +165,98 @@
     </div>
     {% endif %}
 
-    {% if analysis.swot_analysis %}
+    <!-- Agent Analyses -->
+    {% set agents = [
+        ('تحليل الطلب على الوساطة', analysis.market_analysis, '#3b82f6'),
+        ('التحليل المالي للوساطة', analysis.financial_analysis, '#10b981'),
+        ('تحليل المنافسة في الوساطة', analysis.competitive_analysis, '#8b5cf6'),
+        ('التحليل القانوني للوساطة', analysis.legal_analysis, '#f59e0b'),
+        ('التحليل التقني للمنصة', analysis.technical_analysis, '#06b6d4')
+    ] %}
+
     <div class="section">
-        <h2>تحليل SWOT</h2>
-        <div class="swot-grid" id="swot-grid">
+        <h1>تحليلات الوكلاء المتخصصين</h1>
+        {% for name, data_str, color in agents %}
+        {% if data_str %}
+        <div class="agent-card" id="agent-{{ loop.index }}">
+            <div class="agent-title" style="color: {{ color }}">{{ name }}</div>
             <script>
                 (function() {
                     try {
-                        var d = JSON.parse({{ analysis.swot_analysis | tojson }});
-                        var grid = document.getElementById('swot-grid');
-                        var sections = [
-                            {key: 'strengths', title: 'نقاط القوة', cls: 'swot-s'},
-                            {key: 'weaknesses', title: 'نقاط الضعف', cls: 'swot-w'},
-                            {key: 'opportunities', title: 'الفرص', cls: 'swot-o'},
-                            {key: 'threats', title: 'التهديدات', cls: 'swot-t'}
-                        ];
-                        sections.forEach(function(s) {
-                            var items = d[s.key] || [];
-                            var html = '<div class="swot-cell ' + s.cls + '"><h4>' + s.title + '</h4><ul>';
-                            items.forEach(function(item) {
-                                var txt = typeof item === 'string' ? item : (item.point || '');
-                                html += '<li>' + txt + '</li>';
-                            });
-                            html += '</ul></div>';
-                            grid.innerHTML += html;
-                        });
+                        var d = JSON.parse({{ data_str | tojson }});
+                        var card = document.getElementById('agent-{{ loop.index }}');
+                        var html = '';
+                        if (d.score) html += '<span class="score-badge" style="background:{{ color }}">' + d.score + '/10</span>';
+                        if (d.summary) html += '<p style="margin-top:10px;font-size:10pt">' + _e(d.summary) + '</p>';
+                        if (d.details && d.details.length) {
+                            html += '<ul>';
+                            d.details.forEach(function(det) { html += '<li>' + _e(det) + '</li>'; });
+                            html += '</ul>';
+                        }
+                        // Financial tables
+                        if (d.startup_costs && d.startup_costs.length) {
+                            html += '<h3 style="margin-top:12px">التكاليف التأسيسية</h3><table><thead><tr><th>البند</th><th>التكلفة (د.ب)</th><th>ملاحظات</th></tr></thead><tbody>';
+                            var total = 0;
+                            d.startup_costs.forEach(function(c) { total += (c.cost_bhd||0); html += '<tr><td>'+_e(c.item)+'</td><td class="num-cell">'+(c.cost_bhd||0).toLocaleString()+'</td><td style="font-size:9pt;color:#666">'+_e(c.notes||'')+'</td></tr>'; });
+                            html += '<tr style="font-weight:700;background:#E3F2FD"><td>الإجمالي</td><td class="num-cell">'+total.toLocaleString()+'</td><td></td></tr></tbody></table>';
+                        }
+                        if (d.operating_costs && d.operating_costs.length) {
+                            html += '<h3 style="margin-top:12px">التكاليف التشغيلية الشهرية</h3><table><thead><tr><th>البند</th><th>شهري (د.ب)</th><th>سنوي (د.ب)</th></tr></thead><tbody>';
+                            var tm=0,ta=0;
+                            d.operating_costs.forEach(function(c) { tm+=(c.monthly_bhd||0); ta+=(c.annual_bhd||0); html += '<tr><td>'+_e(c.item)+'</td><td class="num-cell">'+(c.monthly_bhd||0).toLocaleString()+'</td><td class="num-cell">'+(c.annual_bhd||0).toLocaleString()+'</td></tr>'; });
+                            html += '<tr style="font-weight:700;background:#E3F2FD"><td>الإجمالي</td><td class="num-cell">'+tm.toLocaleString()+'</td><td class="num-cell">'+ta.toLocaleString()+'</td></tr></tbody></table>';
+                        }
+                        if (d.profitability && d.profitability.length) {
+                            html += '<h3 style="margin-top:12px">سيناريوهات الربحية</h3><table><thead><tr><th>المؤشر</th><th style="color:#ffcdd2">متحفظ</th><th style="color:#fff9c4">متوسط</th><th style="color:#c8e6c9">متفائل</th></tr></thead><tbody>';
+                            d.profitability.forEach(function(p) { html += '<tr><td>'+_e(p.indicator)+'</td><td class="num-cell">'+_e(p.conservative)+'</td><td class="num-cell">'+_e(p.moderate)+'</td><td class="num-cell">'+_e(p.optimistic)+'</td></tr>'; });
+                            html += '</tbody></table>';
+                        }
+                        if (d.breakeven) {
+                            html += '<div class="highlight-info" style="margin-top:10px"><strong>نقطة التعادل:</strong> ' + (d.breakeven.months||'?') + ' شهر | ' + (d.breakeven.monthly_transactions||'?') + ' معاملة/شهر';
+                            if (d.breakeven.details) html += '<br><span style="font-size:9pt;color:#666">' + _e(d.breakeven.details) + '</span>';
+                            html += '</div>';
+                        }
+                        // Competitive tables
+                        if (d.competitors_table && d.competitors_table.length) {
+                            html += '<h3 style="margin-top:12px">المنافسون الرئيسيون</h3><table><thead><tr><th>المنافس</th><th>النشاط</th><th>الحجم</th><th>التهديد</th></tr></thead><tbody>';
+                            d.competitors_table.forEach(function(c) { html += '<tr><td>'+_e(c.name)+'</td><td>'+_e(c.activity||'')+'</td><td>'+_e(c.size||'')+'</td><td>'+_e(c.threat_level||'')+'</td></tr>'; });
+                            html += '</tbody></table>';
+                        }
+                        if (d.recommendation) html += '<p class="rec">التوصية: ' + _e(d.recommendation) + '</p>';
+                        card.innerHTML += html;
                     } catch(e) {}
                 })();
             </script>
         </div>
+        {% endif %}
+        {% endfor %}
     </div>
-    {% endif %}
 
-    {% if analysis.action_plan %}
+    <!-- Brokerage Models -->
+    {% if analysis.brokerage_models_analysis %}
     <div class="section">
-        <h2>خطة العمل التنفيذية</h2>
-        <div id="action-plan-content">
+        <h1 style="color:#be185d;border-color:#be185d">مقارنة نماذج الوساطة</h1>
+        <div id="brokerage-models-content">
             <script>
                 (function() {
                     try {
-                        var d = JSON.parse({{ analysis.action_plan | tojson }});
-                        var el = document.getElementById('action-plan-content');
-                        var html = '<p style="margin-bottom:15px">' + (d.executive_summary || '') + '</p>';
-                        if (d.phases) {
-                            d.phases.forEach(function(p, i) {
-                                html += '<div class="phase"><h4>' + (p.name || ('المرحلة ' + (i+1))) + '</h4>' +
-                                    '<p class="duration">' + (p.duration || '') + ' | ' + (p.estimated_cost || '') + '</p><ul>';
-                                (p.tasks || []).forEach(function(t) { html += '<li>' + t + '</li>'; });
-                                html += '</ul></div>';
+                        var d = JSON.parse({{ analysis.brokerage_models_analysis | tojson }});
+                        var el = document.getElementById('brokerage-models-content');
+                        var html = '';
+                        if (d.summary) html += '<p style="margin-bottom:14px;font-size:10pt">' + _e(d.summary) + '</p>';
+                        if (d.models && d.models.length) {
+                            html += '<div class="models-grid">';
+                            d.models.forEach(function(m) {
+                                html += '<div class="model-card"><div class="model-name">' + _e(m.name||'') + '</div>';
+                                if (m.score) html += '<div style="font-size:10pt;color:#9d174d">التقييم: '+m.score+'/10</div>';
+                                if (m.pros && m.pros.length) { html += '<ul style="padding-right:14px;font-size:9pt">'; m.pros.forEach(function(p){html+='<li style="color:#16a34a">+ '+_e(p)+'</li>';}); html+='</ul>'; }
+                                if (m.cons && m.cons.length) { html += '<ul style="padding-right:14px;font-size:9pt">'; m.cons.forEach(function(c){html+='<li style="color:#dc2626">- '+_e(c)+'</li>';}); html+='</ul>'; }
+                                html += '</div>';
                             });
+                            html += '</div>';
                         }
-                        if (d.total_budget) html += '<p style="font-weight:700;margin-top:15px">الميزانية الإجمالية: ' + d.total_budget + '</p>';
+                        if (d.recommended_model) html += '<p style="margin-top:14px;font-weight:700;color:#be185d">النموذج الموصى به: ' + _e(d.recommended_model) + '</p>';
+                        if (d.recommendation_reason) html += '<p style="font-size:10pt;color:#475569">' + _e(d.recommendation_reason) + '</p>';
                         el.innerHTML += html;
                     } catch(e) {}
                 })();
@@ -220,9 +265,120 @@
     </div>
     {% endif %}
 
-    <div class="footer">
-        <p>دراسة جدوى الوساطة التجارية - البحرين</p>
-        <p>هذا التقرير تم إنشاؤه تلقائياً بواسطة الذكاء الاصطناعي ولا يعتبر دراسة جدوى رسمية</p>
+    <!-- Weighted Breakdown & Cross-Validation -->
+    {% if analysis.final_verdict %}
+    <div class="section">
+        <h1>التقييم المرجح والتحقق المتبادل</h1>
+        <div id="cross-validation-content">
+            <script>
+                (function() {
+                    try {
+                        var d = JSON.parse({{ analysis.final_verdict | tojson }});
+                        var el = document.getElementById('cross-validation-content');
+                        var html = '';
+                        // Weighted breakdown table
+                        if (d.weighted_breakdown && Object.keys(d.weighted_breakdown).length) {
+                            var labels = {market_demand:'الطلب', financial:'المالي', competition:'المنافسة', legal:'القانوني', technical:'التقني', brokerage_model:'النماذج'};
+                            html += '<table><thead><tr><th>الوكيل</th><th>التقييم</th><th>الوزن</th><th>الثقة</th></tr></thead><tbody>';
+                            Object.keys(d.weighted_breakdown).forEach(function(k) {
+                                var v = d.weighted_breakdown[k];
+                                html += '<tr><td>'+(labels[k]||k)+'</td><td class="num-cell">'+v.score+'/10</td><td class="num-cell">'+v.weight+'</td><td class="num-cell">'+v.confidence+'/10</td></tr>';
+                            });
+                            if (d.overall_confidence) html += '<tr style="font-weight:700;background:#E3F2FD"><td>الثقة الإجمالية</td><td colspan="3" class="num-cell">'+d.overall_confidence+'/10</td></tr>';
+                            html += '</tbody></table>';
+                        }
+                        // Contradictions
+                        if (d.contradictions_found && d.contradictions_found.length) {
+                            html += '<h2>التناقضات المكتشفة</h2><table><thead><tr><th>الوكلاء</th><th>التناقض</th><th>الترجيح</th></tr></thead><tbody>';
+                            d.contradictions_found.forEach(function(c) {
+                                html += '<tr><td>'+_e((c.agents||[]).join(' ↔ '))+'</td><td>'+_e(c.description||'')+'</td><td>'+_e(c.resolution||'')+'</td></tr>';
+                            });
+                            html += '</tbody></table>';
+                        }
+                        // Data Gaps
+                        if (d.critical_data_gaps && d.critical_data_gaps.length) {
+                            html += '<div class="highlight-warning" style="margin-top:12px"><strong>فجوات البيانات الحرجة:</strong><ul style="padding-right:18px;margin-top:6px">';
+                            d.critical_data_gaps.forEach(function(g) { html += '<li>'+_e(g)+'</li>'; });
+                            html += '</ul></div>';
+                        }
+                        el.innerHTML = html;
+                    } catch(e) {}
+                })();
+            </script>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SWOT Analysis -->
+    {% if analysis.swot_analysis %}
+    <div class="section">
+        <h1>تحليل SWOT</h1>
+        <div class="swot-grid" id="swot-grid">
+            <script>
+                (function() {
+                    try {
+                        var d = JSON.parse({{ analysis.swot_analysis | tojson }});
+                        var grid = document.getElementById('swot-grid');
+                        var sections = [
+                            {key:'strengths', title:'نقاط القوة', cls:'swot-s'},
+                            {key:'weaknesses', title:'نقاط الضعف', cls:'swot-w'},
+                            {key:'opportunities', title:'الفرص', cls:'swot-o'},
+                            {key:'threats', title:'التهديدات', cls:'swot-t'}
+                        ];
+                        sections.forEach(function(s) {
+                            var items = d[s.key] || [];
+                            var html = '<div class="swot-cell '+s.cls+'"><h4>'+s.title+'</h4><ul>';
+                            items.forEach(function(item) { html += '<li>'+_e(typeof item==='string' ? item : (item.point||''))+'</li>'; });
+                            html += '</ul></div>';
+                            grid.innerHTML += html;
+                        });
+                        // SWOT Summary
+                        if (d.swot_summary && d.swot_summary.length) {
+                            var icons = ['&#128170;','&#9888;&#65039;','&#127919;','&#128308;','&#9889;'];
+                            var sumHtml = '<div class="swot-summary" style="grid-column:1/-1"><h3>الزبدة — خلاصة SWOT</h3><ul style="list-style:none;padding:0">';
+                            d.swot_summary.forEach(function(item, i) { sumHtml += '<li>'+(icons[i]||'&#9679;')+' '+_e(item)+'</li>'; });
+                            sumHtml += '</ul></div>';
+                            grid.innerHTML += sumHtml;
+                        }
+                    } catch(e) {}
+                })();
+            </script>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Plan -->
+    {% if analysis.action_plan %}
+    <div class="section">
+        <h1>خطة العمل التنفيذية</h1>
+        <div id="action-plan-content">
+            <script>
+                (function() {
+                    try {
+                        var d = JSON.parse({{ analysis.action_plan | tojson }});
+                        var el = document.getElementById('action-plan-content');
+                        var html = '<p style="margin-bottom:14px;font-size:10pt">' + _e(d.executive_summary || '') + '</p>';
+                        if (d.phases) {
+                            d.phases.forEach(function(p, i) {
+                                html += '<div class="phase"><h4>' + _e(p.name || ('المرحلة '+(i+1))) + '</h4>';
+                                html += '<p class="duration">' + _e(p.duration||'') + ' | ' + _e(p.estimated_cost||'') + '</p><ul>';
+                                (p.tasks||[]).forEach(function(t) { html += '<li style="font-size:10pt">'+_e(t)+'</li>'; });
+                                html += '</ul></div>';
+                            });
+                        }
+                        if (d.total_budget) html += '<div class="highlight-info"><strong>الميزانية الإجمالية:</strong> ' + _e(d.total_budget) + '</div>';
+                        el.innerHTML += html;
+                    } catch(e) {}
+                })();
+            </script>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="page-footer">
+        <p>Bahrain Smart Investor AI {% if analysis.report_number %}| {{ analysis.report_number }}{% endif %}</p>
+        <p>هذا التقرير تم إنشاؤه بواسطة الذكاء الاصطناعي — نصيحة استثمارية سريعة وليست دراسة جدوى رسمية</p>
     </div>
 </body>
 </html>
