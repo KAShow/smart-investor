@@ -45,7 +45,10 @@ class WorldBankSource(DataSourceBase):
 
     async def fetch(self, sector: str) -> dict:
         mapping = SECTOR_MAP.get(sector, {})
-        indicators = mapping.get("worldbank_indicators", ["NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG"])
+        sector_indicators = mapping.get("worldbank_indicators", ["NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG"])
+        # Always include core macro indicators + sector-specific ones
+        core = ["NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG", "SP.POP.TOTL", "SL.UEM.TOTL.ZS", "NE.TRD.GNFS.ZS"]
+        indicators = list(dict.fromkeys(core + sector_indicators))  # deduplicate, preserve order
 
         results = {}
         try:

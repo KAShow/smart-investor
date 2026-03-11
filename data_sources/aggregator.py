@@ -16,6 +16,66 @@ from .edb import EDBSource
 
 logger = logging.getLogger(__name__)
 
+# Human-readable metadata for each data source
+SOURCE_META = {
+    "world_bank": {
+        "name_ar": "البنك الدولي",
+        "name_en": "World Bank",
+        "icon": "\U0001f30d",
+        "type": "api",
+        "url": "https://api.worldbank.org",
+        "description_ar": "مؤشرات اقتصادية أساسية + متخصصة حسب القطاع: نمو GDP، التضخم، البطالة، التجارة، السكان",
+    },
+    "cbb": {
+        "name_ar": "مصرف البحرين المركزي",
+        "name_en": "Central Bank of Bahrain",
+        "icon": "\U0001f3db\ufe0f",
+        "type": "api_with_fallback",
+        "url": "https://www.cbb.gov.bh",
+        "description_ar": "أسعار صرف الدينار البحريني وأسعار الفائدة الرئيسية",
+    },
+    "sijilat": {
+        "name_ar": "سجلات - السجل التجاري",
+        "name_en": "Sijilat",
+        "icon": "\U0001f4cb",
+        "type": "api_optional",
+        "url": "https://sijilat.bh",
+        "description_ar": "بيانات السجلات التجارية وعدد الشركات المسجلة حسب النشاط",
+    },
+    "trading_economics": {
+        "name_ar": "Trading Economics",
+        "name_en": "Trading Economics",
+        "icon": "\U0001f4c8",
+        "type": "api_optional",
+        "url": "https://tradingeconomics.com",
+        "description_ar": "مؤشرات اقتصادية كلية: GDP بالتفصيل، تضخم، بطالة، ميزان تجاري",
+    },
+    "bahrain_bourse": {
+        "name_ar": "بورصة البحرين",
+        "name_en": "Bahrain Bourse",
+        "icon": "\U0001f4ca",
+        "type": "embedded",
+        "url": "https://bahrainbourse.com",
+        "description_ar": "الشركات المدرجة والقيمة السوقية وبيانات القطاعات",
+    },
+    "tamkeen": {
+        "name_ar": "تمكين (صندوق العمل)",
+        "name_en": "Tamkeen",
+        "icon": "\U0001f91d",
+        "type": "embedded",
+        "url": "https://tamkeen.bh",
+        "description_ar": "برامج دعم المؤسسات: دعم رواتب، تدريب، تحول رقمي، سجلي",
+    },
+    "edb": {
+        "name_ar": "مجلس التنمية الاقتصادية",
+        "name_en": "EDB",
+        "icon": "\U0001f3e2",
+        "type": "embedded",
+        "url": "https://bahrainedb.com",
+        "description_ar": "نظرة عامة اقتصادية، قطاعات التركيز، حوافز الاستثمار",
+    },
+}
+
 # Agent-to-source mapping: which sources are primary/secondary for each agent
 AGENT_SOURCE_MAP = {
     "market": {
@@ -60,6 +120,82 @@ class DataAggregator:
         }
         # Simple in-memory cache
         self._cache = {}
+
+    def build_data_attribution(self, aggregated_data: dict) -> dict:
+        """Build a summary of which data sources contributed to each agent."""
+        agent_names_ar = {
+            "market": "تحليل السوق",
+            "financial": "التحليل المالي",
+            "competitive": "تحليل المنافسة",
+            "legal": "التحليل القانوني",
+            "technical": "التحليل التقني",
+            "brokerage_models": "نماذج الوساطة",
+        }
+        agents = {}
+        total_points = 0
+        active_sources = set()
+
+        for agent_type, mapping in AGENT_SOURCE_MAP.items():
+            sources_used = []
+            for role in ("primary", "secondary"):
+                for src_name in mapping[role]:
+                    data = aggregated_data.get(src_name, {})
+                    has_error = bool(data.get("error"))
+                    dp = data.get("data_points", 0) if not has_error else 0
+                    meta = SOURCE_META.get(src_name, {})
+                    if not has_error and dp > 0:
+                        active_sources.add(src_name)
+                    sources_used.append({
+                        "key": src_name,
+                        "name_ar": meta.get("name_ar", src_name),
+                        "icon": meta.get("icon", ""),
+                        "role": role,
+                        "data_points": dp,
+                        "status": "error" if has_error else ("active" if dp > 0 else "empty"),
+                    })
+            agent_points = sum(s["data_points"] for s in sources_used)
+            total_points += agent_points
+            agents[agent_type] = {
+                "name_ar": agent_names_ar.get(agent_type, agent_type),
+                "sources": sources_used,
+                "total_points": agent_points,
+            }
+
+        return {
+            "agents": agents,
+            "total_data_points": sum(d.get("data_points", 0) for d in aggregated_data.values() if not d.get("error")),
+            "active_sources": len(active_sources),
+            "total_sources": len(self.sources),
+        }
+
+    def get_sources_meta(self) -> dict:
+        """Return metadata about all data sources (for the dashboard UI)."""
+        # Invert AGENT_SOURCE_MAP: source -> list of agents that use it
+        source_agents = {}
+        for agent, mapping in AGENT_SOURCE_MAP.items():
+            for src in mapping["primary"] + mapping["secondary"]:
+                source_agents.setdefault(src, []).append(agent)
+
+        sources = []
+        for key, source in self.sources.items():
+            meta = SOURCE_META.get(key, {})
+            sources.append({
+                "key": key,
+                "name_ar": meta.get("name_ar", key),
+                "name_en": meta.get("name_en", key),
+                "icon": meta.get("icon", ""),
+                "type": meta.get("type", "unknown"),
+                "url": meta.get("url", ""),
+                "description_ar": meta.get("description_ar", ""),
+                "reliability": source.reliability_score,
+                "cache_ttl": source.cache_ttl_seconds,
+                "agents": source_agents.get(key, []),
+            })
+
+        return {
+            "sources": sources,
+            "agent_source_map": AGENT_SOURCE_MAP,
+        }
 
     async def fetch_all(self, sector: str) -> dict:
         """Fetch data from all sources in parallel. Returns dict keyed by source_name."""

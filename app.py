@@ -167,6 +167,10 @@ def analyze_stream():
             technical_ctx = market_context + data_aggregator.build_agent_context(sector, "technical", aggregated)
             brokerage_ctx = market_context + data_aggregator.build_agent_context(sector, "brokerage_models", aggregated)
 
+            # إرسال خريطة مصادر البيانات لكل وكيل
+            attribution = data_aggregator.build_data_attribution(aggregated)
+            event_queue.put(("data_sources_used", json.dumps(attribution, ensure_ascii=False)))
+
             # تشغيل الوكلاء الستة بالتوازي مع بيانات مخصصة لكل وكيل
             await asyncio.gather(
                 run_agent("market_analysis", market_agent.analyze(idea, api_key, provider, model, market_context=market_ctx)),
@@ -190,8 +194,11 @@ def analyze_stream():
             name, data = event_queue.get()
             if name == "agents_done":
                 break
-            results[name] = data
-            yield f"event: {name}\ndata: {json.dumps({'content': data}, ensure_ascii=False)}\n\n"
+            if name == "data_sources_used":
+                yield f"event: data_sources_used\ndata: {data}\n\n"
+            else:
+                results[name] = data
+                yield f"event: {name}\ndata: {json.dumps({'content': data}, ensure_ascii=False)}\n\n"
 
         # تشغيل الـ Synthesizer
         yield f"event: synthesizing\ndata: {json.dumps({'status': 'started'}, ensure_ascii=False)}\n\n"
@@ -721,6 +728,58 @@ def market_needs_data(sector):
     """بيانات فرص الوساطة لقطاع معين - مهيكلة للعرض المرئي."""
     data = bahrain_service.get_sector_data(sector)
     return jsonify(data)
+
+
+@app.route('/api/data-sources/meta')
+def data_sources_meta():
+    """Metadata about all 7 data sources (static, no sector needed)."""
+    meta = data_aggregator.get_sources_meta()
+    return jsonify(meta)
+
+
+@app.route('/api/data-sources/fetch')
+def data_sources_fetch():
+    """Fetch data from all 7 sources for a given sector."""
+    sector = request.args.get('sector', '').strip()
+    if not sector or sector not in SECTORS:
+        return jsonify({'error': 'الرجاء اختيار قطاع صالح'}), 400
+
+    import asyncio as _asyncio
+    from datetime import datetime as _dt
+
+    try:
+        results = _asyncio.run(data_aggregator.fetch_all(sector))
+    except Exception as e:
+        logger.error(f"Data sources fetch error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+    meta = data_aggregator.get_sources_meta()
+    meta_by_key = {s['key']: s for s in meta['sources']}
+
+    sources_response = {}
+    total_points = 0
+    for source_key, source_data in results.items():
+        has_error = bool(source_data.get('error'))
+        dp = source_data.get('data_points', 0)
+        total_points += dp
+        sources_response[source_key] = {
+            'meta': meta_by_key.get(source_key, {}),
+            'status': 'error' if has_error else 'success',
+            'error': source_data.get('error') if has_error else None,
+            'data_points': dp,
+            'reliability': source_data.get('reliability', 0),
+            'is_live': source_data.get('is_live', False),
+            'note': source_data.get('note', ''),
+            'data': source_data,
+        }
+
+    return jsonify({
+        'sector': sector,
+        'sector_name_ar': SECTORS[sector]['name_ar'],
+        'fetched_at': _dt.now().isoformat(),
+        'total_data_points': total_points,
+        'sources': sources_response,
+    })
 
 
 @app.route('/api/analyze-market-needs', methods=['POST'])
