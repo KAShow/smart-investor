@@ -654,20 +654,29 @@ def ask_followup():
 
     try:
         context = _build_followup_context(analysis)
+        web_search_used = False
 
-        # --- خطوة بحث الويب ---
-        web_context = ""
-        if web_search_enabled:
-            logger.info(f"بحث الويب مفعّل للسؤال: {question[:80]}")
+        logger.info(f"📨 سؤال متابعة: {question[:100]}... | analysis_id={analysis_id} | provider={provider} | history={len(conversation_history)} | web_search={web_search_enabled}")
+
+        # --- بناء الرسائل الأساسية ---
+        def _build_messages(system_content):
+            msgs = [{"role": "system", "content": system_content}]
+            if conversation_history:
+                for msg in conversation_history[-20:]:
+                    if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+                        msgs.append({"role": msg['role'], "content": msg['content'][:2000]})
+            msgs.append({"role": "user", "content": question})
+            return msgs
+
+        # --- DuckDuckGo fallback (لـ Anthropic أو عند فشل البحث الأصلي) ---
+        def _ddg_web_context():
             idea_short = analysis['idea'][:100]
             search_query = f"{question} {idea_short} البحرين"
             search_results = search_web(search_query, max_results=5)
-            # إذا لم تنجح المحاولة الأولى، نحاول بالفكرة الاستثمارية فقط
             if not search_results:
-                logger.info("محاولة بحث ثانية بالفكرة الاستثمارية فقط...")
                 search_results = search_web(f"{idea_short} البحرين", max_results=5)
             if search_results:
-                web_context = f"""
+                return f"""
 
 ═══ نتائج بحث الويب ═══
 تم العثور على المعلومات التالية من الإنترنت بخصوص سؤال المستخدم:
@@ -681,44 +690,109 @@ def ask_followup():
 - إذا تعارضت نتائج البحث مع التحليل الأصلي، وضّح ذلك للمستخدم
 - أشر في بداية إجابتك أنك استعنت بنتائج بحث الويب
 """
-                logger.info(f"تم إضافة نتائج بحث الويب إلى السياق ({len(web_context)} حرف)")
-            else:
-                logger.info("لم يتم العثور على نتائج بحث")
+            return ""
 
-        messages = [{"role": "system", "content": context + web_context}]
+        # ============================================================
+        # مسار 1: OpenAI مع بحث ويب أصلي (Responses API + web_search)
+        # ============================================================
+        if provider == 'openai' and web_search_enabled:
+            logger.info("🔍 OpenAI: استخدام بحث الويب الأصلي (Responses API + web_search)")
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
 
-        # إضافة تاريخ المحادثة (آخر 20 رسالة كحد أقصى)
-        if conversation_history:
-            for msg in conversation_history[-20:]:
-                if msg.get('role') in ('user', 'assistant') and msg.get('content'):
-                    messages.append({
-                        "role": msg['role'],
-                        "content": msg['content'][:2000]
-                    })
+                # بناء input messages لـ Responses API
+                input_msgs = []
+                if conversation_history:
+                    for msg in conversation_history[-20:]:
+                        if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+                            input_msgs.append({"role": msg['role'], "content": msg['content'][:2000]})
+                input_msgs.append({"role": "user", "content": question})
 
-        messages.append({"role": "user", "content": question})
+                response = client.responses.create(
+                    model=model or get_default_model(provider),
+                    instructions=context,
+                    input=input_msgs,
+                    tools=[{"type": "web_search"}],
+                    max_output_tokens=4000,
+                )
+                answer = response.output_text or "لم أتمكن من الإجابة"
+                web_search_used = True
+                logger.info(f"✅ OpenAI Responses API + web_search نجح | طول الإجابة: {len(answer)}")
+            except Exception as e:
+                logger.warning(f"⚠️ OpenAI web_search فشل ({type(e).__name__}: {e}), fallback إلى DuckDuckGo")
+                web_ctx = _ddg_web_context()
+                messages = _build_messages(context + web_ctx)
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+                response = client.chat.completions.create(
+                    model=model or get_default_model(provider),
+                    messages=messages,
+                    max_completion_tokens=4000
+                )
+                answer = response.choices[0].message.content or "لم أتمكن من الإجابة"
+                web_search_used = bool(web_ctx)
 
-        logger.info(f"📨 سؤال متابعة: {question[:100]}... | analysis_id={analysis_id} | history={len(conversation_history)} | web_search={web_search_enabled}")
+        # ============================================================
+        # مسار 2: Gemini مع بحث ويب أصلي (Google Search Grounding)
+        # ============================================================
+        elif provider == 'gemini' and web_search_enabled:
+            logger.info("🔍 Gemini: استخدام Google Search Grounding")
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                # إنشاء أداة google_search_retrieval
+                google_search_tool = genai.protos.Tool(
+                    google_search_retrieval=genai.protos.GoogleSearchRetrieval()
+                )
+                gemini_model = genai.GenerativeModel(
+                    model or get_default_model(provider),
+                    system_instruction=context,
+                    tools=[google_search_tool]
+                )
+                chat_history = []
+                if conversation_history:
+                    for msg in conversation_history[-20:]:
+                        if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+                            role = 'user' if msg['role'] == 'user' else 'model'
+                            chat_history.append({"role": role, "parts": [msg['content'][:2000]]})
+                chat = gemini_model.start_chat(history=chat_history)
+                gemini_resp = chat.send_message(
+                    question,
+                    generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
+                )
+                answer = gemini_resp.text or "لم أتمكن من الإجابة"
+                web_search_used = True
+                logger.info(f"✅ Gemini Google Search Grounding نجح | طول الإجابة: {len(answer)}")
+            except Exception as e:
+                logger.warning(f"⚠️ Gemini grounding فشل ({type(e).__name__}: {e}), fallback إلى DuckDuckGo")
+                web_ctx = _ddg_web_context()
+                messages = _build_messages(context + web_ctx)
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                gemini_model = genai.GenerativeModel(
+                    model or get_default_model(provider),
+                    system_instruction=messages[0]['content']
+                )
+                gemini_history = []
+                for msg in messages[1:]:
+                    role = 'user' if msg['role'] == 'user' else 'model'
+                    gemini_history.append({"role": role, "parts": [msg['content']]})
+                chat = gemini_model.start_chat(history=gemini_history[:-1])
+                gemini_resp = chat.send_message(
+                    gemini_history[-1]['parts'][0],
+                    generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
+                )
+                answer = gemini_resp.text or "لم أتمكن من الإجابة"
+                web_search_used = bool(web_ctx)
 
-        if provider == 'gemini':
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            system_prompt = messages[0]['content']
-            gemini_model = genai.GenerativeModel(
-                model or get_default_model(provider),
-                system_instruction=system_prompt
-            )
-            gemini_history = []
-            for msg in messages[1:]:  # skip system (now passed as system_instruction)
-                role = 'user' if msg['role'] == 'user' else 'model'
-                gemini_history.append({"role": role, "parts": [msg['content']]})
-            chat = gemini_model.start_chat(history=gemini_history[:-1])
-            gemini_resp = chat.send_message(
-                gemini_history[-1]['parts'][0],
-                generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
-            )
-            answer = gemini_resp.text or "لم أتمكن من الإجابة"
-        elif provider == 'anthropic':
+        # ============================================================
+        # مسار 3: Anthropic مع بحث DuckDuckGo (لا يدعم بحث أصلي)
+        # ============================================================
+        elif provider == 'anthropic' and web_search_enabled:
+            logger.info("🔍 Anthropic: استخدام DuckDuckGo (لا يدعم بحث ويب أصلي)")
+            web_ctx = _ddg_web_context()
+            messages = _build_messages(context + web_ctx)
             import anthropic as anthropic_sdk
             client = anthropic_sdk.Anthropic(api_key=api_key)
             system_msg = ""
@@ -735,18 +809,59 @@ def ask_followup():
                 messages=api_messages,
             )
             answer = (response.content[0].text if response.content else None) or "لم أتمكن من الإجابة"
-        else:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            response = client.chat.completions.create(
-                model=model or get_default_model(provider),
-                messages=messages,
-                max_completion_tokens=4000
-            )
-            answer = response.choices[0].message.content or "لم أتمكن من الإجابة"
+            web_search_used = bool(web_ctx)
 
-        logger.info(f"✅ إجابة المتابعة: {len(answer)} حرف | web_search_used={bool(web_context)}")
-        return jsonify({'answer': answer, 'web_search_used': bool(web_context)})
+        # ============================================================
+        # مسار 4: بدون بحث ويب (جميع المزودين)
+        # ============================================================
+        else:
+            messages = _build_messages(context)
+            if provider == 'gemini':
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                gemini_model = genai.GenerativeModel(
+                    model or get_default_model(provider),
+                    system_instruction=messages[0]['content']
+                )
+                gemini_history = []
+                for msg in messages[1:]:
+                    role = 'user' if msg['role'] == 'user' else 'model'
+                    gemini_history.append({"role": role, "parts": [msg['content']]})
+                chat = gemini_model.start_chat(history=gemini_history[:-1])
+                gemini_resp = chat.send_message(
+                    gemini_history[-1]['parts'][0],
+                    generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
+                )
+                answer = gemini_resp.text or "لم أتمكن من الإجابة"
+            elif provider == 'anthropic':
+                import anthropic as anthropic_sdk
+                client = anthropic_sdk.Anthropic(api_key=api_key)
+                system_msg = ""
+                api_messages = []
+                for msg in messages:
+                    if msg['role'] == 'system':
+                        system_msg = msg['content']
+                    else:
+                        api_messages.append(msg)
+                response = client.messages.create(
+                    model=model or get_default_model(provider),
+                    max_tokens=4000,
+                    system=system_msg,
+                    messages=api_messages,
+                )
+                answer = (response.content[0].text if response.content else None) or "لم أتمكن من الإجابة"
+            else:
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+                response = client.chat.completions.create(
+                    model=model or get_default_model(provider),
+                    messages=messages,
+                    max_completion_tokens=4000
+                )
+                answer = response.choices[0].message.content or "لم أتمكن من الإجابة"
+
+        logger.info(f"✅ إجابة المتابعة: {len(answer)} حرف | web_search_used={web_search_used}")
+        return jsonify({'answer': answer, 'web_search_used': web_search_used})
 
     except Exception as e:
         logger.error(f"❌ خطأ في سؤال المتابعة: {type(e).__name__}: {e}")
