@@ -12,7 +12,7 @@
 
 .markdown-content h1 {
     font-size: 1.8em;
-    color: #CE1126;
+    color: #1D4ED8;
 }
 
 .markdown-content h2 {
@@ -43,7 +43,7 @@
 
 .markdown-content ul li::before {
     content: "\2022";
-    color: #CE1126;
+    color: #1D4ED8;
     font-weight: bold;
     display: inline-block;
     width: 1em;
@@ -51,12 +51,12 @@
 }
 
 .markdown-content strong {
-    color: #CE1126;
+    color: #1D4ED8;
     font-weight: 700;
 }
 
 .markdown-content blockquote {
-    border-right: 4px solid #CE1126;
+    border-right: 4px solid #1D4ED8;
     background: rgba(255, 255, 255, 0.05);
     padding: 1em;
     border-radius: 8px;
@@ -73,19 +73,19 @@
 }
 
 [data-theme="light"] .markdown-content h1 {
-    color: #CE1126;
+    color: #1D4ED8;
 }
 
 [data-theme="light"] .markdown-content strong {
-    color: #9B0E1D;
+    color: #1D4ED8;
 }
 
 [data-theme="light"] .markdown-content ul li::before {
-    color: #CE1126;
+    color: #1D4ED8;
 }
 
 [data-theme="light"] .markdown-content blockquote {
-    border-right-color: #CE1126;
+    border-right-color: #1D4ED8;
     background: rgba(0, 0, 0, 0.03);
 }
 
@@ -106,7 +106,7 @@
 
 [dir="ltr"] .markdown-content blockquote {
     border-right: none;
-    border-left: 4px solid #CE1126;
+    border-left: 4px solid #1D4ED8;
 }
 
 [dir="ltr"] .markdown-content ul li::before {
@@ -129,7 +129,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #CE1126;
+    background: #1D4ED8;
 }
 
 [data-theme="light"] ::-webkit-scrollbar-track {
@@ -141,5 +141,5 @@
 }
 
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-    background: #CE1126;
+    background: #1D4ED8;
 }

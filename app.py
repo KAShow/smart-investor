@@ -50,20 +50,18 @@ _pending_analyses = {}
 
 
 DEFAULT_MODELS = {
-    'openai': 'gpt-5.2',
-    'gemini': 'gemini-2.5-flash',
-    'anthropic': 'claude-sonnet-4-20250514',
+    'perplexity': 'sonar-pro',
 }
 
 
 def get_default_model(provider: str) -> str:
-    return DEFAULT_MODELS.get(provider, 'gpt-5.2')
+    return DEFAULT_MODELS.get('perplexity', 'sonar-pro')
 
 
 def validate_input(sector, api_key):
     """التحقق من صحة المدخلات وإرجاع رسالة خطأ أو None"""
     if not api_key:
-        return 'الرجاء إدخال مفتاح API'
+        return 'الرجاء إدخال مفتاح API لـ Perplexity'
     if not sector or sector not in SECTORS:
         return 'الرجاء اختيار قطاع صالح لدراسة الوساطة'
     return None
@@ -100,9 +98,9 @@ def analyze_stream():
     if token and token in _pending_analyses:
         params = _pending_analyses.pop(token)
         sector = params.get('sector', '').strip()
-        provider = params.get('provider', 'openai').strip()
+        provider = 'perplexity'
         model = params.get('model', '').strip() or get_default_model(provider)
-        synthesizer_provider = params.get('synthesizer_provider', '').strip() or provider
+        synthesizer_provider = 'perplexity'
         synthesizer_model = params.get('synthesizer_model', '').strip() or get_default_model(synthesizer_provider)
         budget = params.get('budget', '').strip()
         notes = params.get('notes', '').strip()
@@ -112,9 +110,9 @@ def analyze_stream():
         api_key = params.get('api_key', '').strip()
     else:
         sector = request.args.get('sector', '').strip()
-        provider = request.args.get('provider', 'openai').strip()
+        provider = 'perplexity'
         model = request.args.get('model', '').strip() or get_default_model(provider)
-        synthesizer_provider = request.args.get('synthesizer_provider', '').strip() or provider
+        synthesizer_provider = 'perplexity'
         synthesizer_model = request.args.get('synthesizer_model', '').strip() or get_default_model(synthesizer_provider)
         budget = request.args.get('budget', '').strip()
         notes = request.args.get('notes', '').strip()
@@ -123,14 +121,9 @@ def analyze_stream():
         requester_company = request.args.get('requester_company', '').strip()
         api_key = request.args.get('api_key', '').strip()
 
-    # تحديد مفتاح API حسب المزود
+    # تحديد مفتاح API للـ Perplexity
     if not api_key:
-        if provider == 'anthropic':
-            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        elif provider == 'gemini':
-            api_key = os.environ.get('GEMINI_API_KEY', '')
-        else:
-            api_key = os.environ.get('OPENAI_API_KEY', '')
+        api_key = os.environ.get('PERPLEXITY_API_KEY', '')
 
     error = validate_input(sector, api_key)
     if error:
@@ -1116,11 +1109,34 @@ def analyze_market_needs():
 
         content = asyncio.run(_run())
 
+        # تنظيف الاستجابة واستخراج JSON
+        import re
+        cleaned = content.strip()
+        # إزالة باك تيكس (```json ... ```)
+        code_block_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', cleaned)
+        if code_block_match:
+            cleaned = code_block_match.group(1).strip()
+        else:
+            # محاولة استخراج أول كائن JSON من النص
+            json_match = re.search(r'\{[\s\S]*\}', cleaned)
+            if json_match:
+                cleaned = json_match.group(0)
+
         try:
-            result = json.loads(content)
+            result = json.loads(cleaned)
             return jsonify({'analysis': result})
         except json.JSONDecodeError:
-            return jsonify({'analysis': {'sector_overview': content, 'buyer_seller_map': [], 'brokerage_models': [], 'gaps': [], 'risks': [], 'recommendation': '', 'best_model': '', 'estimated_demand': ''}})
+            logger.warning(f"⚠️ فشل تحليل JSON من استجابة AI (طول الاستجابة: {len(content)})")
+            # محاولة أخيرة: تنظيف أكثر عمقاً
+            try:
+                # إزالة أي نص قبل أول { وبعد آخر }
+                start = cleaned.index('{')
+                end = cleaned.rindex('}') + 1
+                result = json.loads(cleaned[start:end])
+                return jsonify({'analysis': result})
+            except (json.JSONDecodeError, ValueError):
+                logger.error(f"❌ فشل نهائي في تحليل JSON. أول 500 حرف: {content[:500]}")
+                return jsonify({'analysis': {'sector_overview': content, 'buyer_seller_map': [], 'brokerage_models': [], 'gaps': [], 'risks': [], 'recommendation': '', 'best_model': '', 'estimated_demand': ''}})
 
     except Exception as e:
         logger.error(f"❌ خطأ في تحليل فرص الوساطة: {type(e).__name__}: {e}")
