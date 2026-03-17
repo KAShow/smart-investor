@@ -82,6 +82,21 @@ SECTOR_EDB_MAP = {
     "education": ["education"],
     "transport": ["logistics"],
     "retail": ["tourism"],  # Retail benefits from tourism
+    "ai_applications": ["ict"],
+    "energy_environment": ["manufacturing"],
+    "media_entertainment": ["tourism"],
+    "agriculture": [],
+    "professional_services": ["financial_services"],
+    "tourism_travel": ["tourism"],
+    "sports_fitness": ["tourism"],
+    "beauty_personal": [],
+    "automotive": [],
+    "security_safety": [],
+    "cleaning_maintenance": [],
+    "events_weddings": ["tourism"],
+    "pet_services": [],
+    "printing_packaging": ["manufacturing"],
+    "recycling_waste": [],
 }
 
 

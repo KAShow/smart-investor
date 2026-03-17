@@ -118,6 +118,76 @@ SECTOR_COMPETITORS = {
         {"name_ar": "فنتك باي البحرين", "name_en": "FinTech Bay Bahrain", "cr_number": "CR-86540", "established": "2018", "activity": "حاضنة تكنولوجيا مالية وAI", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": "bahrainfintechbay.com"},
         {"name_ar": "شركة إيفولف التقنية", "name_en": "Evolve Technologies", "cr_number": "CR-95670", "established": "2023", "activity": "حلول AI للمؤسسات", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
     ],
+    "energy_environment": [
+        {"name_ar": "شركة طاقة البحرين", "name_en": "Bahrain Energy Company", "cr_number": "CR-10001", "established": "2005", "activity": "حلول طاقة شمسية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "الشركة الوطنية للطاقة المتجددة", "name_en": "National Renewable Energy", "cr_number": "CR-10002", "established": "2010", "activity": "أنظمة طاقة متجددة", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "شركة المياه الوطنية", "name_en": "National Water Company", "cr_number": "CR-10003", "established": "2008", "activity": "معالجة مياه", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+    ],
+    "media_entertainment": [
+        {"name_ar": "شركة البحرين للإعلام", "name_en": "Bahrain Media Company", "cr_number": "CR-11001", "established": "2002", "activity": "إنتاج إعلامي", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "استديوهات السيف", "name_en": "Seef Studios", "cr_number": "CR-11002", "established": "2015", "activity": "إنتاج أفلام ومحتوى", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "شركة إيفنتس البحرين", "name_en": "Events Bahrain", "cr_number": "CR-11003", "established": "2012", "activity": "تنظيم فعاليات", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "agriculture": [
+        {"name_ar": "شركة البحرين الزراعية", "name_en": "Bahrain Agricultural Company", "cr_number": "CR-12001", "established": "1985", "activity": "زراعة وإنتاج نباتي", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "مزارع دلمون", "name_en": "Dilmun Farms", "cr_number": "CR-12002", "established": "1995", "activity": "زراعة منتجات طازجة", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "شركة الأسماك البحرينية", "name_en": "Bahrain Fish Company", "cr_number": "CR-12003", "established": "2000", "activity": "تربية أسماك", "governorate": "المحرق", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+    ],
+    "professional_services": [
+        {"name_ar": "مكتب الخليج للمحاسبة", "name_en": "Gulf Accounting Office", "cr_number": "CR-13001", "established": "1990", "activity": "خدمات محاسبية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "شركة العدالة للمحاماة", "name_en": "Adala Law Firm", "cr_number": "CR-13002", "established": "2005", "activity": "خدمات قانونية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "مكتب الاستشارات المتكاملة", "name_en": "Integrated Consulting", "cr_number": "CR-13003", "established": "2010", "activity": "استشارات إدارية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "tourism_travel": [
+        {"name_ar": "وكالة السفر الوطنية", "name_en": "National Travel Agency", "cr_number": "CR-14001", "established": "1995", "activity": "وكالة سفر", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "شركة الجولات السياحية", "name_en": "Tourism Tours Company", "cr_number": "CR-14002", "established": "2008", "activity": "جولات سياحية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "فنادق الخليج البحرين", "name_en": "Gulf Hotels Bahrain", "cr_number": "CR-14003", "established": "2000", "activity": "فنادق وضيافة", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+    ],
+    "sports_fitness": [
+        {"name_ar": "نادي اللياقة الوطني", "name_en": "National Fitness Club", "cr_number": "CR-15001", "established": "2010", "activity": "نادي رياضي", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "شركة معدات الرياضة", "name_en": "Sports Equipment Co", "cr_number": "CR-15002", "established": "2005", "activity": "بيع معدات رياضية", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "أكاديمية كرة القدم", "name_en": "Football Academy", "cr_number": "CR-15003", "established": "2015", "activity": "تدريب رياضي", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "beauty_personal": [
+        {"name_ar": "صالونات الجمال", "name_en": "Beauty Salons", "cr_number": "CR-16001", "established": "2008", "activity": "صالونات تجميل", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "شركة المستحضرات الطبيعية", "name_en": "Natural Cosmetics Co", "cr_number": "CR-16002", "established": "2012", "activity": "مستحضرات تجميل", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+        {"name_ar": "عيادات الجلد", "name_en": "Skin Clinics", "cr_number": "CR-16003", "established": "2015", "activity": "عيادات تجميل", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+    ],
+    "automotive": [
+        {"name_ar": "شركة البحرين للسيارات", "name_en": "Bahrain Automotive", "cr_number": "CR-17001", "established": "1980", "activity": "وكالة سيارات", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "ورشة الصقر للصيانة", "name_en": "Saqer Auto Workshop", "cr_number": "CR-17002", "established": "2005", "activity": "صيانة سيارات", "governorate": "المحرق", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "شركة قطع الغيار", "name_en": "Auto Parts Company", "cr_number": "CR-17003", "established": "1995", "activity": "بيع قطع غيار", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+    ],
+    "security_safety": [
+        {"name_ar": "شركة الحراسات الأمنية", "name_en": "Security Guards Company", "cr_number": "CR-18001", "established": "2000", "activity": "حراسات أمنية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "أنظمة المراقبة المتقدمة", "name_en": "Advanced Surveillance", "cr_number": "CR-18002", "established": "2010", "activity": "أنظمة أمن", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "شركة معدات السلامة", "name_en": "Safety Equipment Co", "cr_number": "CR-18003", "established": "2008", "activity": "معدات سلامة", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "cleaning_maintenance": [
+        {"name_ar": "شركة النظافة الشاملة", "name_en": "Comprehensive Cleaning", "cr_number": "CR-19001", "established": "2005", "activity": "خدمات تنظيف", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "صيانة المباني", "name_en": "Building Maintenance", "cr_number": "CR-19002", "established": "2010", "activity": "صيانة عامة", "governorate": "المحرق", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "خدمات التعقيم", "name_en": "Sanitization Services", "cr_number": "CR-19003", "established": "2020", "activity": "تعقيم وتطهير", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "events_weddings": [
+        {"name_ar": "قاعات الأفراح الملكية", "name_en": "Royal Wedding Halls", "cr_number": "CR-20001", "established": "2005", "activity": "قاعات أفراح", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "منسقي الحفلات", "name_en": "Event Planners", "cr_number": "CR-20002", "established": "2012", "activity": "تنظيم مناسبات", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "خدمات الأعراس", "name_en": "Wedding Services", "cr_number": "CR-20003", "established": "2015", "activity": "تنسيق أعراس", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "pet_services": [
+        {"name_ar": "عيادة الحيوانات الأليفة", "name_en": "Pet Care Clinic", "cr_number": "CR-21001", "established": "2010", "activity": "عيادة بيطرية", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "متجر الحيوانات", "name_en": "Pet Store", "cr_number": "CR-21002", "established": "2008", "activity": "بيع أغذية حيوانات", "governorate": "الشمالية", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+        {"name_ar": "فندق الحيوانات", "name_en": "Pet Hotel", "cr_number": "CR-21003", "established": "2015", "activity": "استضافة حيوانات", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "printing_packaging": [
+        {"name_ar": "مطبعة البحرين", "name_en": "Bahrain Printing Press", "cr_number": "CR-22001", "established": "1990", "activity": "طباعة", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "شركة التغليف الحديث", "name_en": "Modern Packaging", "cr_number": "CR-22002", "established": "2005", "activity": "تغليف", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "طباعة ثلاثية الأبعاد", "name_en": "3D Printing", "cr_number": "CR-22003", "established": "2018", "activity": "طباعة 3D", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
+    "recycling_waste": [
+        {"name_ar": "شركة إعادة التدوير", "name_en": "Recycling Company", "cr_number": "CR-23001", "established": "2008", "activity": "إعادة تدوير", "governorate": "الجنوبية", "entity_type": "شركة", "status": "نشط", "size": "كبير", "website": ""},
+        {"name_ar": "إدارة النفايات", "name_en": "Waste Management", "cr_number": "CR-23002", "established": "2010", "activity": "جمع نفايات", "governorate": "العاصمة", "entity_type": "شركة", "status": "نشط", "size": "متوسط", "website": ""},
+        {"name_ar": "شركة الخردة", "name_en": "Scrap Company", "cr_number": "CR-23003", "established": "2000", "activity": "شراء خردة", "governorate": "المحرق", "entity_type": "شركة", "status": "نشط", "size": "صغير", "website": ""},
+    ],
 }
 
 
@@ -203,6 +273,20 @@ class SijilatSource(DataSourceBase):
             "transport": {"total_estimate": 700, "active_estimate": 500, "annual_new": 50},
             "retail": {"total_estimate": 5000, "active_estimate": 3800, "annual_new": 300},
             "ai_applications": {"total_estimate": 120, "active_estimate": 80, "annual_new": 25},
+            "energy_environment": {"total_estimate": 200, "active_estimate": 150, "annual_new": 20},
+            "media_entertainment": {"total_estimate": 350, "active_estimate": 250, "annual_new": 40},
+            "agriculture": {"total_estimate": 300, "active_estimate": 200, "annual_new": 15},
+            "professional_services": {"total_estimate": 1200, "active_estimate": 900, "annual_new": 80},
+            "tourism_travel": {"total_estimate": 600, "active_estimate": 450, "annual_new": 50},
+            "sports_fitness": {"total_estimate": 250, "active_estimate": 180, "annual_new": 30},
+            "beauty_personal": {"total_estimate": 800, "active_estimate": 600, "annual_new": 70},
+            "automotive": {"total_estimate": 500, "active_estimate": 380, "annual_new": 35},
+            "security_safety": {"total_estimate": 200, "active_estimate": 150, "annual_new": 15},
+            "cleaning_maintenance": {"total_estimate": 600, "active_estimate": 450, "annual_new": 50},
+            "events_weddings": {"total_estimate": 400, "active_estimate": 300, "annual_new": 40},
+            "pet_services": {"total_estimate": 80, "active_estimate": 60, "annual_new": 10},
+            "printing_packaging": {"total_estimate": 300, "active_estimate": 220, "annual_new": 20},
+            "recycling_waste": {"total_estimate": 100, "active_estimate": 70, "annual_new": 10},
         }
 
         sector_data = estimates.get(sector, {"total_estimate": 500, "active_estimate": 350, "annual_new": 30})
