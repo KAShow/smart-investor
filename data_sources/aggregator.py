@@ -240,6 +240,113 @@ class DataAggregator:
 
         return results
 
+    def _build_cross_source_summary(self, sector: str, data: dict) -> str:
+        """Build an interconnected summary from all sources for market need detection."""
+        parts = []
+
+        # ── Market Size ──
+        te = data.get("trading_economics", {})
+        sj = data.get("sijilat", {})
+        bo = data.get("bahrain_bourse", {})
+        market = []
+        if te and not te.get("error"):
+            gdp_info = te.get("sector_gdp", {})
+            if gdp_info and gdp_info.get("contribution") != "غير متوفر":
+                market.append(f"مساهمة القطاع في GDP: {gdp_info['contribution']}")
+            macro = te.get("macro", {})
+            gdp_val = macro.get("gdp", {})
+            if gdp_val:
+                market.append(f"إجمالي GDP البحرين: {gdp_val.get('value', 'N/A')} ({gdp_val.get('year', '')})")
+        if sj and not sj.get("error"):
+            total = sj.get("total_registered", 0)
+            active = sj.get("active_companies", 0)
+            annual = sj.get("annual_new_registrations", 0)
+            if total:
+                market.append(f"شركات مسجلة في القطاع: ~{total:,} (نشطة: ~{active:,})")
+            if annual:
+                market.append(f"تسجيلات جديدة سنوياً: ~{annual}")
+        if bo and not bo.get("error"):
+            sd = bo.get("sector_data")
+            if sd:
+                market.append(f"شركات مدرجة في البورصة: {sd.get('listed_companies', 'N/A')} (قيمة سوقية: {sd.get('market_cap_approx', 'N/A')})")
+        if market:
+            parts.append("📊 حجم السوق والعرض:\n" + "\n".join(f"  - {m}" for m in market))
+
+        # ── Business Environment ──
+        cb = data.get("cbb", {})
+        tk = data.get("tamkeen", {})
+        ed = data.get("edb", {})
+        env = []
+        if cb and not cb.get("error"):
+            cbb_data = cb.get("data", {})
+            ir = cbb_data.get("interest_rate", {})
+            if ir:
+                env.append(f"فائدة الإقراض: {ir.get('overnight_lending', 'N/A')} | فائدة الإيداع: {ir.get('overnight_deposit', 'N/A')}")
+        if tk and not tk.get("error"):
+            progs = tk.get("programs", {})
+            if progs:
+                prog_names = [p.get("name_ar", k) for k, p in progs.items()]
+                env.append(f"برامج دعم تمكين المتاحة: {', '.join(prog_names)}")
+            sijilli = tk.get("sijilli", {})
+            if sijilli:
+                env.append(f"سجلي: {sijilli.get('total_activities', 71)} نشاط متاح برسوم {sijilli.get('annual_fee', '50 د.ب')}/سنة")
+        if ed and not ed.get("error"):
+            incentives = ed.get("investment_incentives", {})
+            if incentives:
+                env.append(f"حوافز: {incentives.get('tax_free', '')} | ضريبة قيمة مضافة: {incentives.get('vat', '')} | تأسيس: {incentives.get('company_setup', '')}")
+        if env:
+            parts.append("🏢 بيئة الأعمال:\n" + "\n".join(f"  - {e}" for e in env))
+
+        # ── Growth Indicators ──
+        wb = data.get("world_bank", {})
+        growth = []
+        if wb and not wb.get("error"):
+            indicators = wb.get("indicators", {})
+            gdp_growth = indicators.get("NY.GDP.MKTP.KD.ZG", {})
+            pts = gdp_growth.get("data", [])
+            if pts:
+                latest = pts[0]
+                growth.append(f"نمو GDP الحقيقي: {latest['value']}% ({latest['year']})")
+                if len(pts) >= 3:
+                    vals = [p["value"] for p in pts[:3] if p["value"] is not None]
+                    if vals:
+                        avg = sum(vals) / len(vals)
+                        growth.append(f"متوسط نمو (3 سنوات): {avg:.1f}%")
+            inflation = indicators.get("FP.CPI.TOTL.ZG", {})
+            inf_pts = inflation.get("data", [])
+            if inf_pts:
+                growth.append(f"التضخم: {inf_pts[0]['value']}% ({inf_pts[0]['year']})")
+        if te and not te.get("error"):
+            macro = te.get("macro", {})
+            unemp = macro.get("unemployment", {})
+            if unemp:
+                growth.append(f"البطالة: {unemp.get('value', 'N/A')} ({unemp.get('year', '')})")
+        if growth:
+            parts.append("📈 مؤشرات النمو:\n" + "\n".join(f"  - {g}" for g in growth))
+
+        # ── Market Opportunities ──
+        opps = []
+        if ed and not ed.get("error"):
+            for name, details in ed.get("sector_details", {}).items():
+                highlights = details.get("highlights", [])
+                for h in highlights[:2]:
+                    opps.append(h)
+        if sj and not sj.get("error"):
+            annual = sj.get("annual_new_registrations", 0)
+            total = sj.get("total_registered", 0)
+            if annual and total and total > 0:
+                growth_rate = (annual / total) * 100
+                if growth_rate > 5:
+                    opps.append(f"نمو سريع في التسجيلات ({growth_rate:.0f}% سنوياً) يشير لطلب متزايد")
+                elif growth_rate < 2:
+                    opps.append(f"تباطؤ في التسجيلات الجديدة ({growth_rate:.0f}%) قد يشير لتشبع أو فرصة لتمايز")
+        if opps:
+            parts.append("🎯 مؤشرات فرص السوق:\n" + "\n".join(f"  - {o}" for o in opps))
+
+        if not parts:
+            return ""
+        return "══ ملخص مترابط من جميع المصادر ══\n" + "\n\n".join(parts) + "\n══ نهاية الملخص ══"
+
     def build_agent_context(self, sector: str, agent_type: str, aggregated_data: dict) -> str:
         """Build a context string tailored for a specific agent type."""
         source_map = AGENT_SOURCE_MAP.get(agent_type, {"primary": [], "secondary": []})
@@ -247,6 +354,12 @@ class DataAggregator:
         secondary_sources = source_map["secondary"]
 
         sections = []
+
+        # Add cross-source summary first
+        cross_summary = self._build_cross_source_summary(sector, aggregated_data)
+        if cross_summary:
+            sections.append("\n" + cross_summary)
+
         sections.append("\n══ بيانات إضافية من مصادر متعددة ══")
 
         # Primary sources

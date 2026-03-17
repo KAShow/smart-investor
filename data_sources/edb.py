@@ -71,18 +71,6 @@ EDB_DATA = {
     },
 }
 
-# Sector-to-EDB mapping
-SECTOR_EDB_MAP = {
-    "food_hospitality": ["tourism"],
-    "real_estate": ["real_estate"],
-    "technology": ["ict"],
-    "finance": ["financial_services"],
-    "manufacturing": ["manufacturing"],
-    "health": ["healthcare"],
-    "education": ["education"],
-    "transport": ["logistics"],
-    "retail": ["tourism"],  # Retail benefits from tourism
-}
 
 
 class EDBSource(DataSourceBase):
@@ -100,7 +88,8 @@ class EDBSource(DataSourceBase):
         return 90 * 24 * 3600  # 90 days (annual reports)
 
     async def fetch(self, sector: str) -> dict:
-        edb_sectors = SECTOR_EDB_MAP.get(sector, [])
+        mapping = get_sector_mapping(sector)
+        edb_sectors = mapping.get("edb_focus", [])
 
         sector_details = {}
         for s in edb_sectors:
