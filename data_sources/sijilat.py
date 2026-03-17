@@ -4,7 +4,7 @@ import os
 import logging
 import aiohttp
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ class SijilatSource(DataSourceBase):
         api_key = os.environ.get("SIJILAT_API_KEY", "")
         enabled = os.environ.get("SIJILAT_ENABLED", "false").lower() == "true"
 
-        mapping = SECTOR_MAP.get(sector, {})
+        mapping = get_sector_mapping(sector)
         activities = mapping.get("sijilat_activities", [])
 
         # If API is not enabled, return embedded estimate data

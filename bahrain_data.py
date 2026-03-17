@@ -94,6 +94,78 @@ SECTORS = {
         "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"],
         "brokerage_context": "وساطة بين مطوري حلول الذكاء الاصطناعي (شركات AI، مطورين مستقلين، مزودي نماذج تعلم آلي) والمشترين (شركات تحتاج حلول AI، بنوك، حكومة، قطاع صحي). تشمل المعاملات: تطوير وتخصيص نماذج AI، أتمتة عمليات، تحليل بيانات متقدم، حلول معالجة اللغة الطبيعية، رؤية حاسوبية. ملاحظة: البحرين لديها استراتيجية وطنية للذكاء الاصطناعي و Regulatory Sandbox من مصرف البحرين المركزي."
     },
+    "security_safety": {
+        "name_ar": "أمن وسلامة",
+        "icon": "🛡️",
+        "gdp_keywords": ["الخدمات", "الإدارية"],
+        "cpi_keywords": [],
+        "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي خدمات الأمن والسلامة (شركات حراسة، أنظمة مراقبة، أنظمة إنذار، معدات سلامة، استشارات أمنية) والمشترين (شركات، مصانع، مجمعات تجارية، مؤسسات حكومية، منشآت نفطية). تشمل المعاملات: توريد كاميرات مراقبة، أنظمة تحكم بالدخول، خدمات حراسة أمنية، أنظمة إطفاء حريق، استشارات السلامة المهنية، تراخيص أمنية من وزارة الداخلية."
+    },
+    "tourism_entertainment": {
+        "name_ar": "سياحة وترفيه",
+        "icon": "🏖️",
+        "gdp_keywords": ["إقامة", "الفنادق", "السياحة"],
+        "cpi_keywords": ["مطاعم", "فنادق", "ترفيه"],
+        "include_datasets": ["tourism", "fdi", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي الخدمات السياحية والترفيهية (فنادق، منتجعات، شركات سياحة، منظمي فعاليات) والمشترين (سياح، شركات تبحث عن تنظيم فعاليات، وكالات سفر). تشمل المعاملات: حجز فنادق، تنظيم رحلات، تنظيم مؤتمرات ومعارض، خدمات ترفيه."
+    },
+    "energy_environment": {
+        "name_ar": "طاقة وبيئة",
+        "icon": "⚡",
+        "gdp_keywords": ["التعدين", "النفط", "الكهرباء"],
+        "cpi_keywords": ["كهرباء", "وقود"],
+        "include_datasets": ["fdi", "imports", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي خدمات الطاقة والبيئة (شركات طاقة شمسية، مقاولي كهرباء، شركات إدارة نفايات، استشارات بيئية) والمشترين (مصانع، شركات، مباني تجارية، جهات حكومية). تشمل المعاملات: توريد ألواح شمسية، أنظمة توفير طاقة، خدمات إعادة تدوير، استشارات بيئية، تراخيص بيئية."
+    },
+    "media_marketing": {
+        "name_ar": "إعلام وتسويق",
+        "icon": "📢",
+        "gdp_keywords": ["المعلومات", "الاتصالات"],
+        "cpi_keywords": ["الاتصالات"],
+        "include_datasets": ["unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي خدمات الإعلام والتسويق (وكالات إعلان، مصممين، مصورين، شركات إنتاج محتوى، مؤثرين) والمشترين (شركات تبحث عن تسويق، علامات تجارية، منظمي فعاليات). تشمل المعاملات: حملات إعلانية، تصميم هوية بصرية، إنتاج فيديو، تسويق رقمي، إدارة وسائل التواصل."
+    },
+    "beauty_wellness": {
+        "name_ar": "تجميل وعناية شخصية",
+        "icon": "💄",
+        "gdp_keywords": ["الخدمات"],
+        "cpi_keywords": [],
+        "include_datasets": ["unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي منتجات وخدمات التجميل (موردي مستحضرات تجميل، أجهزة تجميل، مدربي تجميل) والمشترين (صالونات، عيادات تجميل، سبا، متاجر مستحضرات). تشمل المعاملات: توريد مستحضرات تجميل بالجملة، أجهزة ليزر وتجميل، دورات تدريب تجميل."
+    },
+    "legal_consulting": {
+        "name_ar": "خدمات قانونية واستشارية",
+        "icon": "⚖️",
+        "gdp_keywords": ["الخدمات", "المهنية"],
+        "cpi_keywords": [],
+        "include_datasets": ["unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين مزودي الخدمات القانونية والاستشارية (مكاتب محاماة، مستشارين ماليين، مدققي حسابات، مستشاري أعمال) والمشترين (شركات، رواد أعمال، مستثمرين أجانب). تشمل المعاملات: استشارات قانونية، تأسيس شركات، تدقيق حسابات، استشارات ضريبية، تراخيص تجارية."
+    },
+    "agriculture_fishing": {
+        "name_ar": "زراعة وصيد",
+        "icon": "🌾",
+        "gdp_keywords": ["الزراعة", "صيد"],
+        "cpi_keywords": ["طعام"],
+        "include_datasets": ["imports", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين المنتجين الزراعيين والصيادين (مزارع، شركات استزراع سمكي، مزارع دواجن) والمشترين (أسواق مركزية، مطاعم، تجار جملة، مصانع أغذية). تشمل المعاملات: بيع محاصيل بالجملة، توريد أسماك طازجة، بيع منتجات حيوانية، توريد أعلاف ومعدات زراعية."
+    },
+    "automotive": {
+        "name_ar": "سيارات وقطع غيار",
+        "icon": "🚗",
+        "gdp_keywords": ["التجارة", "النقل"],
+        "cpi_keywords": ["النقل"],
+        "include_datasets": ["imports", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين موردي السيارات وقطع الغيار (وكالات سيارات، مستوردي قطع غيار، ورش صيانة متخصصة) والمشترين (أفراد، شركات تأجير، شركات نقل، ورش صيانة). تشمل المعاملات: بيع سيارات جديدة ومستعملة، توريد قطع غيار بالجملة، خدمات صيانة وإصلاح."
+    },
+    "construction_materials": {
+        "name_ar": "مواد بناء ومقاولات",
+        "icon": "🧱",
+        "gdp_keywords": ["التشييد", "البناء"],
+        "cpi_keywords": ["مسكن"],
+        "include_datasets": ["fdi", "imports", "unemployment", "labor", "tamkeen"],
+        "brokerage_context": "وساطة بين موردي مواد البناء (مصانع إسمنت، حديد، رخام، مستوردي مواد بناء) والمشترين (مقاولين، شركات تطوير عقاري، أفراد يبنون منازل). تشمل المعاملات: توريد مواد بناء بالجملة، عقود توريد طويلة الأمد، خدمات مقاولات باطن."
+    },
 }
 
 # ─── ربط أسماء الداتاسيتات بمعرّفات API ───
@@ -150,6 +222,172 @@ DATASET_CONFIG = {
         "name": "دعم تمكين"
     },
 }
+
+
+# ─── أيقونات القطاعات بالكلمات المفتاحية ───
+_ICON_MAP = [
+    ("صناع", "🏭"), ("تحويل", "🏭"), ("تشييد", "🏗️"), ("بناء", "🏗️"),
+    ("مالي", "🏦"), ("تأمين", "🏦"), ("تعليم", "🎓"),
+    ("مياه", "💧"), ("صرف صحي", "💧"), ("نفايات", "💧"),
+    ("صحة الإنسان", "🏥"), ("عمل الاجتماعي", "🏥"),
+    ("نقل", "🚚"), ("تخزين", "🚚"), ("معلومات", "💻"), ("اتصالات", "💻"),
+    ("عقار", "🏠"), ("زراع", "🌾"), ("صيد", "🌾"), ("تعدين", "⛏️"),
+    ("نفط", "🛢️"), ("كهرباء", "⚡"), ("غاز", "⚡"), ("تجار", "🛍️"),
+    ("إقامة", "🏨"), ("طعام", "🏨"), ("إدار", "🏛️"), ("عام", "🏛️"), ("دفاع", "🏛️"),
+    ("ترفي", "🎭"), ("فنون", "🎭"), ("أسر", "🏠"), ("ضرائب", "💰"),
+    ("مهني", "💼"), ("علمي", "💼"), ("منظمات", "🌐"), ("هيئات", "🌐"),
+]
+
+# صفوف تجميعية يجب استبعادها
+_AGGREGATE_KEYWORDS = ["الناتج المحلي", "اجمالي القيمة", "إجمالي الناتج", "Total", "صافي الضرائب"]
+
+# كاش القطاعات المجلوبة من API
+_dynamic_sectors_cache = None
+
+
+# ربط أسماء القطاعات العربية من API بـ slugs إنجليزية واضحة
+_SECTOR_SLUG_MAP = {
+    "الصناعة التحويلية": "manufacturing",
+    "التشييد": "construction",
+    "الأنشطة المالية وأنشطة التأمين": "finance_insurance",
+    "الأنشطة العقارية": "real_estate",
+    "المعلومات والاتصالات": "ict",
+    "النقل والتخزين": "transport_storage",
+    "التعليم": "education",
+    "التعدين واستغلال المحاجر": "mining",
+    "تجارة الجملة والتجزئة": "wholesale_retail",
+    "الإدارة العامة والدفاع": "public_admin",
+    "أنشطة خدمات الإقامة والطعام": "hospitality",
+    "الزراعة والحراجة وصيد الأسماك": "agriculture_fishing",
+    "إمدادات الكهرباء والغاز": "electricity_gas",
+    "الأنشطة المهنية والعلمية والتقنية": "professional_services",
+    "الفنون والترفية والتسلية": "arts_entertainment",
+    "أنشطة الخدمات الإدارية وخدمات الدعم": "admin_services",
+    "أنشطة الخدمات الأخرى": "other_services",
+    "أنشطة الأسر باعتبارها جهة مشغله": "household_activities",
+    "أنشطة المنظمات والهيئات": "international_orgs",
+    "إمدادات المياة": "water_sanitation",
+    "إمدادات المياه": "water_sanitation",
+    "الأنشطة في مجال صحة": "healthcare",
+    "االأنشطة في مجال صحة": "healthcare",
+}
+
+
+def _name_to_slug(name_ar):
+    """تحويل اسم القطاع العربي إلى slug إنجليزي."""
+    # بحث في الخريطة المعروفة أولاً
+    for ar_key, slug in _SECTOR_SLUG_MAP.items():
+        if ar_key in name_ar:
+            return slug
+    # fallback: توليد من الاسم العربي
+    import re
+    clean = re.sub(r'[\u0610-\u061A\u064B-\u065F]', '', name_ar)
+    clean = re.sub(r'[,،\(].*', '', clean).strip()
+    words = clean.split()[:3]
+    slug = "_".join(words)
+    slug = re.sub(r'[^\w]', '_', slug)
+    slug = re.sub(r'_+', '_', slug).strip('_')
+    return slug or "other"
+
+
+def _icon_for_sector(name_ar):
+    """اختيار أيقونة مناسبة بناءً على اسم القطاع."""
+    for keyword, icon in _ICON_MAP:
+        if keyword in name_ar:
+            return icon
+    return "📊"
+
+
+def _generate_brokerage_context(name_ar):
+    """توليد سياق وساطة تلقائي من اسم القطاع."""
+    return f"وساطة تجارية في قطاع {name_ar} في مملكة البحرين. يشمل ربط مزودي الخدمات والمنتجات بالمشترين والعملاء في هذا القطاع."
+
+
+def _generate_sijilat_terms(name_ar):
+    """توليد مصطلحات بحث Sijilat من اسم القطاع."""
+    import re
+    # كلمات توقف عربية بسيطة
+    stop = {"و", "في", "من", "إلى", "على", "أو", "ال", "أنشطة", "خدمات", "وأنشطة"}
+    clean = re.sub(r'[\u0610-\u061A\u064B-\u065F]', '', name_ar)
+    clean = re.sub(r'\(.*?\)', '', clean).strip()
+    words = [w for w in clean.split() if w not in stop and len(w) > 2]
+    return words[:5]
+
+
+def fetch_sectors_from_api():
+    """جلب قائمة القطاعات الحقيقية من data.gov.bh (بيانات GDP السنوي)."""
+    global _dynamic_sectors_cache
+    if _dynamic_sectors_cache is not None:
+        return _dynamic_sectors_cache
+
+    try:
+        url = "https://www.data.gov.bh/api/explore/v2.1/catalog/datasets/04-annually-gva-kp-value/records"
+        resp = requests.get(url, params={"limit": 100, "lang": "ar", "order_by": "year desc"}, timeout=15)
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+
+        # استخراج أسماء القطاعات الفريدة
+        sector_names = set()
+        for r in results:
+            fields = r.get("record", {}).get("fields", {}) if "record" in r else r
+            name = (fields.get("lnsht_lqtsdy_bl_s_r_lthbt")
+                    or fields.get("lqt_l_s_r_ljry")
+                    or fields.get("sector", ""))
+            if name and not any(agg in name for agg in _AGGREGATE_KEYWORDS):
+                sector_names.add(name.strip())
+
+        if not sector_names:
+            logger.warning("⚠️ لم يتم العثور على قطاعات من API")
+            return None
+
+        # بناء dict القطاعات
+        sectors = {}
+        for name_ar in sorted(sector_names):
+            slug = _name_to_slug(name_ar)
+            sectors[slug] = {
+                "name_ar": name_ar,
+                "icon": _icon_for_sector(name_ar),
+                "gdp_keywords": [name_ar],
+                "cpi_keywords": [],
+                "include_datasets": ["fdi", "unemployment", "labor", "tamkeen"],
+                "brokerage_context": _generate_brokerage_context(name_ar),
+                "sijilat_terms": _generate_sijilat_terms(name_ar),
+                "source": "data.gov.bh",
+            }
+
+        logger.info(f"✅ تم جلب {len(sectors)} قطاع من data.gov.bh")
+        _dynamic_sectors_cache = sectors
+        return sectors
+
+    except Exception as e:
+        logger.warning(f"⚠️ فشل جلب القطاعات من API: {e}")
+        return None
+
+
+def get_sectors():
+    """إرجاع القطاعات - من API أولاً، ثم SECTORS كـ fallback."""
+    dynamic = fetch_sectors_from_api()
+    if dynamic:
+        # دمج: القطاعات الديناميكية + القطاعات اليدوية التي لها تفاصيل إضافية
+        merged = dict(dynamic)
+        for key, val in SECTORS.items():
+            if key not in merged:
+                merged[key] = val
+            else:
+                # إذا القطاع موجود في كلا المصدرين، نُثري الديناميكي بالبيانات اليدوية
+                if val.get("cpi_keywords"):
+                    merged[key]["cpi_keywords"] = val["cpi_keywords"]
+                if val.get("brokerage_context") and "source" not in val:
+                    merged[key]["brokerage_context"] = val["brokerage_context"]
+        return merged
+    return SECTORS
+
+
+def refresh_sectors_cache():
+    """إعادة جلب القطاعات من API (مسح الكاش)."""
+    global _dynamic_sectors_cache
+    _dynamic_sectors_cache = None
+    return get_sectors()
 
 
 class BahrainDataService:

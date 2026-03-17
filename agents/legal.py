@@ -96,6 +96,6 @@ SYSTEM_PROMPT = """أنت محلل متخصص في الإطار القانوني
 class LegalAgent(BaseAgent):
     def __init__(self):
         super().__init__(
-            model="gpt-5-mini",
+            model="sonar-pro",
             system_prompt=SYSTEM_PROMPT
         )

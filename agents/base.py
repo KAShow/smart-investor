@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import traceback
@@ -8,21 +9,40 @@ import anthropic
 from anthropic import AsyncAnthropic
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
 
-# إعداد logging شامل
+# إعداد logging شامل مع rotation
+from logging.handlers import RotatingFileHandler
+
+_log_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+_stream_handler = logging.StreamHandler(sys.stdout)
+_stream_handler.setFormatter(_log_formatter)
+_file_handler = RotatingFileHandler('debug.log', encoding='utf-8', maxBytes=5*1024*1024, backupCount=3)
+_file_handler.setFormatter(_log_formatter)
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('debug.log', encoding='utf-8'),
-    ]
+    handlers=[_stream_handler, _file_handler]
 )
 logger = logging.getLogger(__name__)
 
 PROVIDERS = {
     'perplexity': {
         'models': ['sonar', 'sonar-pro', 'sonar-reasoning', 'sonar-reasoning-pro'],
-        'default': 'sonar-pro'
+        'default': 'sonar-pro',
+        'base_url': 'https://api.perplexity.ai'
+    },
+    'openai': {
+        'models': ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1', 'o1-mini'],
+        'default': 'gpt-4o-mini',
+        'base_url': None
+    },
+    'anthropic': {
+        'models': ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-opus-4-20250514'],
+        'default': 'claude-sonnet-4-20250514',
+        'base_url': None
+    },
+    'gemini': {
+        'models': ['gemini-2.0-flash', 'gemini-2.5-pro-preview-06-05'],
+        'default': 'gemini-2.0-flash',
+        'base_url': None
     }
 }
 
@@ -46,36 +66,71 @@ def _extract_json(text: str) -> str:
 async def create_completion(provider: str, model: str, api_key: str, messages: list, max_tokens: int = 4000, temperature: float = 0.2):
     logger.info(f"═══════════════════════════════════════════")
     logger.info(f"📡 create_completion بدأ | provider={provider} | model={model}")
-    logger.info(f"🔑 API Key: {api_key[:8]}...{api_key[-4:]}")
-    
-    # تحويل المزود إلى perplexity دائماً حسب طلب المستخدم
-    provider = 'perplexity'
-    
-    logger.info("🟢 استخدام مزود Perplexity (متوافق مع OpenAI API)")
+    logger.info(f"🔑 API Key: ***{api_key[-4:] if len(api_key) > 4 else '****'}")
+
+    # التأكد من أن المزود معروف، وإلا استخدام perplexity كافتراضي
+    if provider not in PROVIDERS:
+        logger.warning(f"⚠️ مزود غير معروف '{provider}'، استخدام perplexity")
+        provider = 'perplexity'
+
+    provider_config = PROVIDERS[provider]
+    effective_model = model if model in provider_config['models'] else provider_config['default']
+    logger.info(f"🟢 استخدام مزود {provider} | model={effective_model}")
+
     try:
-        # Perplexity API is compatible with OpenAI SDK
-        client = AsyncOpenAI(api_key=api_key, base_url="https://api.perplexity.ai")
-        kwargs = dict(
-            model=model if model in PROVIDERS['perplexity']['models'] else PROVIDERS['perplexity']['default'],
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature
-        )
-        
-        logger.info(f"📤 إرسال طلب Perplexity | model={kwargs['model']}")
-        response = await client.chat.completions.create(**kwargs)
-        
-        message = response.choices[0].message
-        content = message.content or ""
-        
-        logger.info(f"✅ Perplexity استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
-        logger.info(f"📊 الاستخدام: {response.usage}")
-        
+        if provider == 'anthropic':
+            client = AsyncAnthropic(api_key=api_key)
+            # استخراج system message من messages
+            system_content = ""
+            user_messages = []
+            for msg in messages:
+                if msg["role"] == "system":
+                    system_content = msg["content"]
+                else:
+                    user_messages.append(msg)
+            response = await client.messages.create(
+                model=effective_model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=system_content,
+                messages=user_messages
+            )
+            content = response.content[0].text or ""
+            logger.info(f"✅ {provider} استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
+        elif provider == 'gemini':
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            genai_model = genai.GenerativeModel(effective_model)
+            # تجميع الرسائل في نص واحد
+            prompt_parts = []
+            for msg in messages:
+                prompt_parts.append(msg["content"])
+            response = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: genai_model.generate_content("\n\n".join(prompt_parts))
+            )
+            content = response.text or ""
+            logger.info(f"✅ {provider} استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
+        else:
+            # OpenAI و Perplexity (كلاهما متوافق مع OpenAI SDK)
+            client_kwargs = {"api_key": api_key}
+            if provider_config.get('base_url'):
+                client_kwargs["base_url"] = provider_config['base_url']
+            client = AsyncOpenAI(**client_kwargs)
+            response = await client.chat.completions.create(
+                model=effective_model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            content = response.choices[0].message.content or ""
+            logger.info(f"✅ {provider} استجاب بنجاح | طول الاستجابة: {len(content)} حرف")
+            logger.info(f"📊 الاستخدام: {response.usage}")
+
         content = _extract_json(content)
         return content
 
     except Exception as e:
-        logger.error(f"❌ خطأ Perplexity: {type(e).__name__}: {e}")
+        logger.error(f"❌ خطأ {provider}: {type(e).__name__}: {e}")
         logger.error(f"📋 التتبع الكامل:\n{traceback.format_exc()}")
         raise
 
@@ -130,7 +185,7 @@ class BaseAgent:
             except json.JSONDecodeError as e:
                 logger.warning(f"⚠️ {agent_name}: JSON غير صالح: {e}")
                 logger.warning(f"⚠️ المحتوى الخام: {content[:300]}")
-                return json.dumps({"title": "تحليل", "summary": content, "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)
+                return json.dumps({"title": "تحليل", "summary": content, "details": [], "score": 0, "recommendation": "", "validation": {"confidence_score": 1, "confidence_reasoning": "JSON غير صالح من المزود", "data_sources_used": [], "assumptions": ["التحليل مبني على نص خام غير منسق"], "data_gaps": ["جميع البيانات المهيكلة"]}}, ensure_ascii=False)
 
         except Exception as e:
             logger.error(f"❌ {agent_name}: فشل التحليل: {type(e).__name__}: {e}")

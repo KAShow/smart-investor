@@ -2,7 +2,7 @@
 
 import logging
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class TamkeenSource(DataSourceBase):
         return 30 * 24 * 3600  # 30 days (semi-static)
 
     async def fetch(self, sector: str) -> dict:
-        mapping = SECTOR_MAP.get(sector, {})
+        mapping = get_sector_mapping(sector)
         relevant_programs = mapping.get("tamkeen_programs", ["enterprise_support"])
 
         programs = {}

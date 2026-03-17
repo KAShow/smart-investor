@@ -92,3 +92,35 @@ SECTOR_MAP = {
         "edb_focus": ["ict", "fintech", "digital"],
     },
 }
+
+# مؤشرات WorldBank العامة لأي قطاع غير معرّف
+_DEFAULT_WB_INDICATORS = ["NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG", "SP.POP.TOTL", "SL.UEM.TOTL.ZS"]
+
+
+def get_sector_mapping(sector_key):
+    """إرجاع mapping القطاع - ثابت إذا موجود، أو مولّد ديناميكياً."""
+    if sector_key in SECTOR_MAP:
+        return SECTOR_MAP[sector_key]
+
+    # توليد mapping ديناميكي للقطاعات المجلوبة من API
+    try:
+        from bahrain_data import get_sectors
+        sectors = get_sectors()
+        sector_info = sectors.get(sector_key, {})
+        sijilat_terms = sector_info.get("sijilat_terms", [])
+        if not sijilat_terms:
+            # توليد من اسم القطاع
+            name_ar = sector_info.get("name_ar", "")
+            sijilat_terms = [w for w in name_ar.split() if len(w) > 2][:5]
+    except Exception:
+        sijilat_terms = []
+
+    return {
+        "worldbank_indicators": _DEFAULT_WB_INDICATORS,
+        "cbb_relevant": False,
+        "sijilat_activities": sijilat_terms,
+        "trading_economics_sector": "GDP from Services",
+        "bourse_sector": None,
+        "tamkeen_programs": ["enterprise_support", "training"],
+        "edb_focus": [],
+    }

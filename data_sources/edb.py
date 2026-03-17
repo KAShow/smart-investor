@@ -2,7 +2,7 @@
 
 import logging
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 

@@ -42,7 +42,7 @@ SYSTEM_PROMPT = """أنت محلل استراتيجي متخصص في تحليل
 
 class SwotAgent:
     def __init__(self):
-        self.model = "gpt-5-mini"
+        self.model = "sonar-pro"
         self.system_prompt = SYSTEM_PROMPT
 
     @retry(
