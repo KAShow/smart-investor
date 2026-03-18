@@ -23,8 +23,6 @@ from data_sources.sijilat import SijilatSource
 from agents.competitor_enrichment import CompetitorEnrichment
 from web_search import search_web
 from openai import OpenAI
-import google.generativeai as genai
-import anthropic as anthropic_sdk
 
 logger = logging.getLogger(__name__)
 
@@ -700,17 +698,11 @@ def ask_followup():
         return jsonify({'error': 'طلب غير صالح'}), 400
     question = data.get('question', '').strip()
     analysis_id = data.get('analysis_id')
-    provider = data.get('provider', 'openai').strip()
     api_key = data.get('api_key', '').strip()
     if not api_key:
-        if provider == 'anthropic':
-            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        elif provider == 'gemini':
-            api_key = os.environ.get('GEMINI_API_KEY', '')
-        else:
-            api_key = os.environ.get('OPENAI_API_KEY', '')
+        api_key = os.environ.get('PERPLEXITY_API_KEY', '')
     conversation_history = data.get('conversation_history', [])
-    model = data.get('model', '').strip()
+    model = data.get('model', '').strip() or 'sonar-pro'
     web_search_enabled = data.get('web_search', False)
 
     if not question or not analysis_id:
@@ -724,201 +716,45 @@ def ask_followup():
         context = _build_followup_context(analysis)
         web_search_used = False
 
-        logger.info(f"📨 سؤال متابعة: {question[:100]}... | analysis_id={analysis_id} | provider={provider} | history={len(conversation_history)} | web_search={web_search_enabled}")
+        logger.info(f"📨 سؤال متابعة: {question[:100]}... | analysis_id={analysis_id} | model={model} | history={len(conversation_history)} | web_search={web_search_enabled}")
 
-        # --- بناء الرسائل الأساسية ---
-        def _build_messages(system_content):
-            msgs = [{"role": "system", "content": system_content}]
-            if conversation_history:
-                for msg in conversation_history[-20:]:
-                    if msg.get('role') in ('user', 'assistant') and msg.get('content'):
-                        msgs.append({"role": msg['role'], "content": msg['content'][:2000]})
-            msgs.append({"role": "user", "content": question})
-            return msgs
-
-        # --- DuckDuckGo fallback (لـ Anthropic أو عند فشل البحث الأصلي) ---
-        def _ddg_web_context():
+        # بناء الرسائل
+        system_content = context
+        if web_search_enabled:
             idea_short = analysis['idea'][:100]
             search_query = f"{question} {idea_short} البحرين"
             search_results = search_web(search_query, max_results=5)
             if not search_results:
                 search_results = search_web(f"{idea_short} البحرين", max_results=5)
             if search_results:
-                return f"""
+                system_content += f"""
 
 ═══ نتائج بحث الويب ═══
-تم العثور على المعلومات التالية من الإنترنت بخصوص سؤال المستخدم:
-
 {search_results}
 
-═══ تعليمات استخدام نتائج البحث ═══
-- استخدم هذه النتائج لدعم إجابتك بمعلومات حديثة وواقعية
-- اذكر المصادر عند الاستشهاد بمعلومة من نتائج البحث
-- لا تكتفِ بنقل النتائج حرفياً — حللها واربطها بسياق دراسة الوساطة التجارية
-- إذا تعارضت نتائج البحث مع التحليل الأصلي، وضّح ذلك للمستخدم
-- أشر في بداية إجابتك أنك استعنت بنتائج بحث الويب
+═══ تعليمات ═══
+- استخدم نتائج البحث لدعم إجابتك بمعلومات حديثة
+- اذكر المصادر عند الاستشهاد بمعلومة
+- حلل النتائج واربطها بسياق دراسة الوساطة التجارية
 """
-            return ""
-
-        # ============================================================
-        # مسار 1: OpenAI مع بحث ويب أصلي (Responses API + web_search)
-        # ============================================================
-        if provider == 'openai' and web_search_enabled:
-            logger.info("🔍 OpenAI: استخدام بحث الويب الأصلي (Responses API + web_search)")
-            try:
-                client = OpenAI(api_key=api_key)
-
-                # بناء input messages لـ Responses API
-                input_msgs = []
-                if conversation_history:
-                    for msg in conversation_history[-20:]:
-                        if msg.get('role') in ('user', 'assistant') and msg.get('content'):
-                            input_msgs.append({"role": msg['role'], "content": msg['content'][:2000]})
-                input_msgs.append({"role": "user", "content": question})
-
-                response = client.responses.create(
-                    model=model or get_default_model(provider),
-                    instructions=context,
-                    input=input_msgs,
-                    tools=[{"type": "web_search"}],
-                    max_output_tokens=4000,
-                )
-                answer = response.output_text or "لم أتمكن من الإجابة"
                 web_search_used = True
-                logger.info(f"✅ OpenAI Responses API + web_search نجح | طول الإجابة: {len(answer)}")
-            except Exception as e:
-                logger.warning(f"⚠️ OpenAI web_search فشل ({type(e).__name__}: {e}), fallback إلى DuckDuckGo")
-                web_ctx = _ddg_web_context()
-                messages = _build_messages(context + web_ctx)
-                client = OpenAI(api_key=api_key)
-                response = client.chat.completions.create(
-                    model=model or get_default_model(provider),
-                    messages=messages,
-                    max_completion_tokens=4000
-                )
-                answer = response.choices[0].message.content or "لم أتمكن من الإجابة"
-                web_search_used = bool(web_ctx)
 
-        # ============================================================
-        # مسار 2: Gemini مع بحث ويب أصلي (Google Search Grounding)
-        # ============================================================
-        elif provider == 'gemini' and web_search_enabled:
-            logger.info("🔍 Gemini: استخدام Google Search Grounding")
-            try:
-                genai.configure(api_key=api_key)
-                # إنشاء أداة google_search_retrieval
-                google_search_tool = genai.protos.Tool(
-                    google_search_retrieval=genai.protos.GoogleSearchRetrieval()
-                )
-                gemini_model = genai.GenerativeModel(
-                    model or get_default_model(provider),
-                    system_instruction=context,
-                    tools=[google_search_tool]
-                )
-                chat_history = []
-                if conversation_history:
-                    for msg in conversation_history[-20:]:
-                        if msg.get('role') in ('user', 'assistant') and msg.get('content'):
-                            role = 'user' if msg['role'] == 'user' else 'model'
-                            chat_history.append({"role": role, "parts": [msg['content'][:2000]]})
-                chat = gemini_model.start_chat(history=chat_history)
-                gemini_resp = chat.send_message(
-                    question,
-                    generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
-                )
-                answer = gemini_resp.text or "لم أتمكن من الإجابة"
-                web_search_used = True
-                logger.info(f"✅ Gemini Google Search Grounding نجح | طول الإجابة: {len(answer)}")
-            except Exception as e:
-                logger.warning(f"⚠️ Gemini grounding فشل ({type(e).__name__}: {e}), fallback إلى DuckDuckGo")
-                web_ctx = _ddg_web_context()
-                messages = _build_messages(context + web_ctx)
-                genai.configure(api_key=api_key)
-                gemini_model = genai.GenerativeModel(
-                    model or get_default_model(provider),
-                    system_instruction=messages[0]['content']
-                )
-                gemini_history = []
-                for msg in messages[1:]:
-                    role = 'user' if msg['role'] == 'user' else 'model'
-                    gemini_history.append({"role": role, "parts": [msg['content']]})
-                chat = gemini_model.start_chat(history=gemini_history[:-1])
-                gemini_resp = chat.send_message(
-                    gemini_history[-1]['parts'][0],
-                    generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
-                )
-                answer = gemini_resp.text or "لم أتمكن من الإجابة"
-                web_search_used = bool(web_ctx)
+        messages = [{"role": "system", "content": system_content}]
+        if conversation_history:
+            for msg in conversation_history[-20:]:
+                if msg.get('role') in ('user', 'assistant') and msg.get('content'):
+                    messages.append({"role": msg['role'], "content": msg['content'][:2000]})
+        messages.append({"role": "user", "content": question})
 
-        # ============================================================
-        # مسار 3: Anthropic مع بحث DuckDuckGo (لا يدعم بحث أصلي)
-        # ============================================================
-        elif provider == 'anthropic' and web_search_enabled:
-            logger.info("🔍 Anthropic: استخدام DuckDuckGo (لا يدعم بحث ويب أصلي)")
-            web_ctx = _ddg_web_context()
-            messages = _build_messages(context + web_ctx)
-            client = anthropic_sdk.Anthropic(api_key=api_key)
-            system_msg = ""
-            api_messages = []
-            for msg in messages:
-                if msg['role'] == 'system':
-                    system_msg = msg['content']
-                else:
-                    api_messages.append(msg)
-            response = client.messages.create(
-                model=model or get_default_model(provider),
-                max_tokens=4000,
-                system=system_msg,
-                messages=api_messages,
-            )
-            answer = (response.content[0].text if response.content else None) or "لم أتمكن من الإجابة"
-            web_search_used = bool(web_ctx)
-
-        # ============================================================
-        # مسار 4: بدون بحث ويب (جميع المزودين)
-        # ============================================================
-        else:
-            messages = _build_messages(context)
-            if provider == 'gemini':
-                genai.configure(api_key=api_key)
-                gemini_model = genai.GenerativeModel(
-                    model or get_default_model(provider),
-                    system_instruction=messages[0]['content']
-                )
-                gemini_history = []
-                for msg in messages[1:]:
-                    role = 'user' if msg['role'] == 'user' else 'model'
-                    gemini_history.append({"role": role, "parts": [msg['content']]})
-                chat = gemini_model.start_chat(history=gemini_history[:-1])
-                gemini_resp = chat.send_message(
-                    gemini_history[-1]['parts'][0],
-                    generation_config=genai.types.GenerationConfig(max_output_tokens=4000)
-                )
-                answer = gemini_resp.text or "لم أتمكن من الإجابة"
-            elif provider == 'anthropic':
-                client = anthropic_sdk.Anthropic(api_key=api_key)
-                system_msg = ""
-                api_messages = []
-                for msg in messages:
-                    if msg['role'] == 'system':
-                        system_msg = msg['content']
-                    else:
-                        api_messages.append(msg)
-                response = client.messages.create(
-                    model=model or get_default_model(provider),
-                    max_tokens=4000,
-                    system=system_msg,
-                    messages=api_messages,
-                )
-                answer = (response.content[0].text if response.content else None) or "لم أتمكن من الإجابة"
-            else:
-                client = OpenAI(api_key=api_key)
-                response = client.chat.completions.create(
-                    model=model or get_default_model(provider),
-                    messages=messages,
-                    max_completion_tokens=4000
-                )
-                answer = response.choices[0].message.content or "لم أتمكن من الإجابة"
+        # Perplexity عبر OpenAI SDK
+        client = OpenAI(api_key=api_key, base_url="https://api.perplexity.ai")
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            max_tokens=4000,
+            temperature=0.3,
+        )
+        answer = response.choices[0].message.content or "لم أتمكن من الإجابة"
 
         logger.info(f"✅ إجابة المتابعة: {len(answer)} حرف | web_search_used={web_search_used}")
         return jsonify({'answer': answer, 'web_search_used': web_search_used})
@@ -984,7 +820,7 @@ def export_pdf(analysis_id):
 
 @app.route('/api-key/status')
 def api_key_status():
-    saved_key = os.environ.get('OPENAI_API_KEY', '')
+    saved_key = os.environ.get('PERPLEXITY_API_KEY', '')
     return jsonify({'saved': bool(saved_key)})
 
 
@@ -998,8 +834,8 @@ def save_api_key():
     if not api_key:
         return jsonify({'error': 'الرجاء إدخال مفتاح API'}), 400
 
-    ENV_PATH.write_text(f'OPENAI_API_KEY={api_key}\n')
-    os.environ['OPENAI_API_KEY'] = api_key
+    ENV_PATH.write_text(f'PERPLEXITY_API_KEY={api_key}\n')
+    os.environ['PERPLEXITY_API_KEY'] = api_key
 
     return jsonify({'success': True})
 
@@ -1083,16 +919,11 @@ def analyze_market_needs():
         return jsonify({'error': 'طلب غير صالح'}), 400
     sector = data.get('sector', '').strip()
     budget = data.get('budget', '').strip()
-    provider = data.get('provider', 'openai').strip()
-    model = data.get('model', '').strip()
+    provider = 'perplexity'
+    model = data.get('model', '').strip() or 'sonar-pro'
     api_key = data.get('api_key', '').strip()
     if not api_key:
-        if provider == 'anthropic':
-            api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-        elif provider == 'gemini':
-            api_key = os.environ.get('GEMINI_API_KEY', '')
-        else:
-            api_key = os.environ.get('OPENAI_API_KEY', '')
+        api_key = os.environ.get('PERPLEXITY_API_KEY', '')
 
     if not api_key:
         return jsonify({'error': 'الرجاء إدخال مفتاح API'}), 400
@@ -1248,7 +1079,7 @@ def gap_analysis():
 
     sector = data.get('sector', '')
     api_key = data.get('api_key', '')
-    provider = data.get('provider', 'openai')
+    provider = 'perplexity'
 
     sectors = get_sectors()
     if sector not in sectors:
@@ -1276,7 +1107,7 @@ def gap_analysis_stream():
 
     sector = data.get('sector', '')
     api_key = data.get('api_key', '')
-    provider = data.get('provider', 'openai')
+    provider = 'perplexity'
     model_override = data.get('model_override', '')
     sector_info = get_sectors().get(sector, {})
 
