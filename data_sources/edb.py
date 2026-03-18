@@ -2,7 +2,7 @@
 
 import logging
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -71,33 +71,6 @@ EDB_DATA = {
     },
 }
 
-# Sector-to-EDB mapping
-SECTOR_EDB_MAP = {
-    "food_hospitality": ["tourism"],
-    "real_estate": ["real_estate"],
-    "technology": ["ict"],
-    "finance": ["financial_services"],
-    "manufacturing": ["manufacturing"],
-    "health": ["healthcare"],
-    "education": ["education"],
-    "transport": ["logistics"],
-    "retail": ["tourism"],  # Retail benefits from tourism
-    "ai_applications": ["ict"],
-    "energy_environment": ["manufacturing"],
-    "media_entertainment": ["tourism"],
-    "agriculture": [],
-    "professional_services": ["financial_services"],
-    "tourism_travel": ["tourism"],
-    "sports_fitness": ["tourism"],
-    "beauty_personal": [],
-    "automotive": [],
-    "security_safety": [],
-    "cleaning_maintenance": [],
-    "events_weddings": ["tourism"],
-    "pet_services": [],
-    "printing_packaging": ["manufacturing"],
-    "recycling_waste": [],
-}
 
 
 class EDBSource(DataSourceBase):
@@ -115,7 +88,8 @@ class EDBSource(DataSourceBase):
         return 90 * 24 * 3600  # 90 days (annual reports)
 
     async def fetch(self, sector: str) -> dict:
-        edb_sectors = SECTOR_EDB_MAP.get(sector, [])
+        mapping = get_sector_mapping(sector)
+        edb_sectors = mapping.get("edb_focus", [])
 
         sector_details = {}
         for s in edb_sectors:

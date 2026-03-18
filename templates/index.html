@@ -669,6 +669,7 @@
         <!-- Top Controls -->
         <div class="flex justify-between items-center mb-6">
             <div class="flex gap-2">
+                <a href="/" class="text-sm px-3 py-1.5 border border-white/20 rounded-lg hover:border-neonBlue transition text-gray-300 hover:text-white no-underline">→ الرئيسية</a>
                 <button onclick="toggleTheme()"
                     class="text-sm px-3 py-1.5 border border-white/20 rounded-lg hover:border-neonBlue transition"
                     id="theme-toggle">🌙 / ☀️</button>
@@ -766,30 +767,7 @@
                             data-ar="القطاع المستهدف للوساطة" data-en="Target Brokerage Sector">القطاع المستهدف للوساطة</label>
                         <select id="sector-select" required
                             class="w-full bg-black/30 border-2 border-neonBlue/40 text-white rounded-xl px-5 py-5 focus:outline-none focus:border-neonBlue focus:ring-2 focus:ring-neonBlue/30 transition-all text-lg font-medium">
-                            <option value="food_hospitality">&#x1F37D;&#xFE0F; مطاعم وأغذية وضيافة</option>
-                            <option value="real_estate">&#x1F3D7;&#xFE0F; عقارات وبناء وتشييد</option>
-                            <option value="technology">&#x1F4BB; تقنية معلومات واتصالات</option>
-                            <option value="finance">&#x1F3E6; خدمات مالية وتأمين</option>
-                            <option value="manufacturing">&#x1F3ED; صناعة وتصنيع</option>
-                            <option value="health">&#x1F3E5; صحة ورعاية طبية</option>
-                            <option value="education">&#x1F393; تعليم وتدريب</option>
-                            <option value="transport">&#x1F69A; نقل ولوجستيات</option>
-                            <option value="retail">&#x1F6CD;&#xFE0F; تجارة وتجزئة</option>
-                            <option value="ai_applications">&#x1F916; تطبيقات الذكاء الاصطناعي</option>
-                            <option value="energy_environment">&#x26A1; طاقة وبيئة</option>
-                            <option value="media_entertainment">&#x1F3AC; إعلام وترفيه</option>
-                            <option value="agriculture">&#x1F33E; زراعة وأسماك</option>
-                            <option value="professional_services">&#x1F4CB; خدمات مهنية واستشارية</option>
-                            <option value="tourism_travel">&#x2708;&#xFE0F; سياحة وسفر</option>
-                            <option value="sports_fitness">&#x1F3CB;&#xFE0F; رياضة ولياقة بدنية</option>
-                            <option value="beauty_personal">&#x1F484; تجميل وعناية شخصية</option>
-                            <option value="automotive">&#x1F697; سيارات ومركبات</option>
-                            <option value="security_safety">&#x1F6E1;&#xFE0F; أمن وسلامة</option>
-                            <option value="cleaning_maintenance">&#x1F9F9; تنظيف وصيانة</option>
-                            <option value="events_weddings">&#x1F492; فعاليات وأعراس</option>
-                            <option value="pet_services">&#x1F43E; حيوانات أليفة</option>
-                            <option value="printing_packaging">&#x1F4E6; طباعة وتغليف</option>
-                            <option value="recycling_waste">&#x267B;&#xFE0F; إعادة تدوير ونفايات</option>
+                            <!-- يتم تعبئة الخيارات ديناميكياً من SECTOR_LIST -->
                         </select>
                     </div>
 
@@ -1318,30 +1296,7 @@
                             data-en="Select Sector">اختر القطاع</label>
                         <select id="mn-sector-select"
                             class="bg-black/30 border border-gray-700 text-white rounded-xl px-5 py-3 focus:outline-none focus:border-neonBlue transition-all min-w-[250px]">
-                            <option value="food_hospitality">🍽️ مطاعم وأغذية وضيافة</option>
-                            <option value="real_estate">🏗️ عقارات وبناء وتشييد</option>
-                            <option value="technology">💻 تقنية معلومات واتصالات</option>
-                            <option value="finance">🏦 خدمات مالية وتأمين</option>
-                            <option value="manufacturing">🏭 صناعة وتصنيع</option>
-                            <option value="health">🏥 صحة ورعاية طبية</option>
-                            <option value="education">🎓 تعليم وتدريب</option>
-                            <option value="transport">🚚 نقل ولوجستيات</option>
-                            <option value="retail">🛍️ تجارة وتجزئة</option>
-                            <option value="ai_applications">🤖 تطبيقات الذكاء الاصطناعي</option>
-                            <option value="energy_environment">⚡ طاقة وبيئة</option>
-                            <option value="media_entertainment">🎬 إعلام وترفيه</option>
-                            <option value="agriculture">🌾 زراعة وأسماك</option>
-                            <option value="professional_services">📋 خدمات مهنية واستشارية</option>
-                            <option value="tourism_travel">✈️ سياحة وسفر</option>
-                            <option value="sports_fitness">🏋️ رياضة ولياقة بدنية</option>
-                            <option value="beauty_personal">💄 تجميل وعناية شخصية</option>
-                            <option value="automotive">🚗 سيارات ومركبات</option>
-                            <option value="security_safety">🛡️ أمن وسلامة</option>
-                            <option value="cleaning_maintenance">🧹 تنظيف وصيانة</option>
-                            <option value="events_weddings">💒 فعاليات وأعراس</option>
-                            <option value="pet_services">🐾 حيوانات أليفة</option>
-                            <option value="printing_packaging">📦 طباعة وتغليف</option>
-                            <option value="recycling_waste">♻️ إعادة تدوير ونفايات</option>
+                            <!-- يتم تعبئة الخيارات ديناميكياً من SECTOR_LIST -->
                         </select>
                     </div>
                     <div>
@@ -1468,30 +1423,7 @@
                             data-ar="اختر القطاع لجلب البيانات" data-en="Select sector to fetch data">اختر القطاع لجلب البيانات</label>
                         <select id="ds-sector-select"
                             class="bg-black/30 border border-gray-700 text-white rounded-xl px-5 py-3 focus:outline-none focus:border-neonBlue transition-all min-w-[250px]">
-                            <option value="food_hospitality">🍽️ مطاعم وأغذية وضيافة</option>
-                            <option value="real_estate">🏗️ عقارات وبناء وتشييد</option>
-                            <option value="technology">💻 تقنية معلومات واتصالات</option>
-                            <option value="finance">🏦 خدمات مالية وتأمين</option>
-                            <option value="manufacturing">🏭 صناعة وتصنيع</option>
-                            <option value="health">🏥 صحة ورعاية طبية</option>
-                            <option value="education">🎓 تعليم وتدريب</option>
-                            <option value="transport">🚚 نقل ولوجستيات</option>
-                            <option value="retail">🛍️ تجارة وتجزئة</option>
-                            <option value="ai_applications">🤖 تطبيقات الذكاء الاصطناعي</option>
-                            <option value="energy_environment">⚡ طاقة وبيئة</option>
-                            <option value="media_entertainment">🎬 إعلام وترفيه</option>
-                            <option value="agriculture">🌾 زراعة وأسماك</option>
-                            <option value="professional_services">📋 خدمات مهنية واستشارية</option>
-                            <option value="tourism_travel">✈️ سياحة وسفر</option>
-                            <option value="sports_fitness">🏋️ رياضة ولياقة بدنية</option>
-                            <option value="beauty_personal">💄 تجميل وعناية شخصية</option>
-                            <option value="automotive">🚗 سيارات ومركبات</option>
-                            <option value="security_safety">🛡️ أمن وسلامة</option>
-                            <option value="cleaning_maintenance">🧹 تنظيف وصيانة</option>
-                            <option value="events_weddings">💒 فعاليات وأعراس</option>
-                            <option value="pet_services">🐾 حيوانات أليفة</option>
-                            <option value="printing_packaging">📦 طباعة وتغليف</option>
-                            <option value="recycling_waste">♻️ إعادة تدوير ونفايات</option>
+                            <!-- يتم تعبئة الخيارات ديناميكياً من SECTOR_LIST -->
                         </select>
                     </div>
                     <button id="ds-fetch-btn" onclick="fetchDataSources()"
@@ -1513,15 +1445,7 @@
             <!-- Quick sector switch -->
             <div id="ds-quick-sectors" class="hidden flex flex-wrap gap-2 justify-center mb-8">
                 <span class="text-xs text-gray-500 self-center ml-2" data-ar="مقارنة سريعة:" data-en="Quick compare:">مقارنة سريعة:</span>
-                <button onclick="quickSwitchSector('food_hospitality')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🍽️</button>
-                <button onclick="quickSwitchSector('real_estate')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🏗️</button>
-                <button onclick="quickSwitchSector('technology')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">💻</button>
-                <button onclick="quickSwitchSector('finance')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🏦</button>
-                <button onclick="quickSwitchSector('manufacturing')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🏭</button>
-                <button onclick="quickSwitchSector('health')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🏥</button>
-                <button onclick="quickSwitchSector('education')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🎓</button>
-                <button onclick="quickSwitchSector('transport')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🚚</button>
-                <button onclick="quickSwitchSector('retail')" class="ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400">🛍️</button>
+                <!-- يتم تعبئة الأزرار ديناميكياً من SECTOR_LIST -->
             </div>
 
             <!-- Source Cards Grid -->
@@ -3513,6 +3437,57 @@
             container.innerHTML = html;
         }
 
+        // ====== قائمة القطاعات - تُجلب ديناميكياً من السيرفر ======
+        let SECTOR_LIST = [];
+
+        // جلب القطاعات من السيرفر وتعبئة جميع dropdowns والأزرار
+        async function fetchAndPopulateSectors() {
+            try {
+                const resp = await fetch('/api/sectors');
+                SECTOR_LIST = await resp.json();
+            } catch (e) {
+                console.error('فشل جلب القطاعات:', e);
+                // fallback في حالة فشل الاتصال
+                SECTOR_LIST = [
+                    { value: 'food_hospitality', icon: '🍽️', name_ar: 'مطاعم وأغذية وضيافة' },
+                    { value: 'real_estate', icon: '🏗️', name_ar: 'عقارات وبناء وتشييد' },
+                    { value: 'technology', icon: '💻', name_ar: 'تقنية معلومات واتصالات' },
+                ];
+            }
+            populateSectorSelects();
+        }
+
+        function populateSectorSelects() {
+            const selectIds = ['sector-select', 'mn-sector-select', 'ds-sector-select'];
+            selectIds.forEach(id => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                sel.innerHTML = ''; // تنظيف أي خيارات سابقة
+                SECTOR_LIST.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.value;
+                    opt.textContent = `${s.icon} ${s.name_ar}`;
+                    sel.appendChild(opt);
+                });
+            });
+            // أزرار التبديل السريع
+            const quickContainer = document.getElementById('ds-quick-sectors');
+            if (quickContainer) {
+                // حذف الأزرار القديمة فقط (الاحتفاظ بـ span العنوان)
+                quickContainer.querySelectorAll('button').forEach(b => b.remove());
+                SECTOR_LIST.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.onclick = () => quickSwitchSector(s.value);
+                    btn.className = 'ds-quick-btn text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-neonBlue hover:text-neonBlue transition text-gray-400';
+                    btn.textContent = s.icon;
+                    btn.title = s.name_ar;
+                    quickContainer.appendChild(btn);
+                });
+            }
+        }
+        // تشغيل الجلب عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', fetchAndPopulateSectors);
+
         // ====== BROKERAGE SOLUTIONS ======
         // 3 حلول بديهية تعمل في جميع القطاعات
         const UNIVERSAL_SOLUTIONS = [
@@ -3839,7 +3814,11 @@
 
             // عرض الحلول المخصصة للقطاع
             const sectorContainer = document.getElementById('sector-solutions');
-            const sectorSolutions = SECTOR_SOLUTIONS[sector] || SECTOR_SOLUTIONS['food_hospitality'];
+            const sectorSolutions = SECTOR_SOLUTIONS[sector];
+            if (!sectorSolutions) {
+                sectorContainer.innerHTML = '<p class="text-gray-500 text-center col-span-3 py-8">لا توجد حلول مخصصة لهذا القطاع حالياً</p>';
+                return;
+            }
             let sectorHtml = '';
             sectorSolutions.forEach((solution, index) => {
                 sectorHtml += `

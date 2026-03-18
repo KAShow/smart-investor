@@ -11,7 +11,16 @@
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
       "Bash(\"c:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.venv\\\\Scripts\\\\python.exe\" -c:*)",
-      "Read(//c/Users/Huawei/.gemini/antigravity/scratch/smart-investor/**)"
+      "Read(//c/Users/Huawei/.gemini/antigravity/scratch/smart-investor/**)",
+      "Bash(sed -i 's/gpt-5-mini/sonar-pro/g' competitive.py legal.py technical.py brokerage_models.py financial.py swot.py)",
+      "Bash(sed -i 's/gpt-5\\\\.2/sonar-pro/g' action_plan.py synthesizer.py)",
+      "Bash(\"/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe\" -c \"import ast; ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\agents\\\\base.py''\\).read\\(\\)\\); ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\app.py''\\).read\\(\\)\\); ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\database.py''\\).read\\(\\)\\); print\\(''All OK''\\)\")",
+      "Bash(\"/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe\" -c \"import ast; ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\agents\\\\base.py'', encoding=''utf-8''\\).read\\(\\)\\); ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\app.py'', encoding=''utf-8''\\).read\\(\\)\\); ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\database.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''All OK''\\)\")",
+      "Bash(\"/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe\" -c \"import ast; ast.parse\\(open\\(r''C:\\\\Users\\\\Huawei\\\\.gemini\\\\antigravity\\\\scratch\\\\smart-investor\\\\.claude\\\\worktrees\\\\dreamy-ride\\\\app.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''app.py OK''\\)\")",
+      "Bash(\"/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe\" -c \":*)",
+      "Bash(for f:*)",
+      "Bash(do sed:*)",
+      "Bash(sed -i 's/SECTOR_MAP\\\\.get\\(sector, {}\\)/get_sector_mapping\\(sector\\)/g' \"$f\")"
     ]
   }
 }

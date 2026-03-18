@@ -2,7 +2,7 @@
 
 import logging
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class BahrainBourseSource(DataSourceBase):
         return 24 * 3600  # 1 day
 
     async def fetch(self, sector: str) -> dict:
-        mapping = SECTOR_MAP.get(sector, {})
+        mapping = get_sector_mapping(sector)
         bourse_sector = mapping.get("bourse_sector")
 
         sector_data = None

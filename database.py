@@ -143,7 +143,19 @@ def get_analysis_by_token(token):
     conn = get_connection()
     row = conn.execute("SELECT * FROM analyses WHERE share_token = ?", (token,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    if not row:
+        return None
+    result = dict(row)
+    # فحص انتهاء صلاحية الرابط
+    if result.get('valid_until'):
+        from datetime import datetime
+        try:
+            expiry = datetime.strptime(result['valid_until'], '%Y-%m-%d %H:%M:%S')
+            if datetime.now() > expiry:
+                return None
+        except (ValueError, TypeError):
+            pass
+    return result
 
 
 def delete_analysis(analysis_id):

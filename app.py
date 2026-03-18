@@ -17,11 +17,14 @@ from agents import (MarketLogicAgent, FinancialAgent, CompetitiveAgent,
 from database import (init_db, save_analysis, get_all_analyses, get_analysis,
                       delete_analysis, get_analysis_by_token, rate_analysis, get_dashboard_stats,
                       get_bahrain_data_status)
-from bahrain_data import BahrainDataService, SECTORS
+from bahrain_data import BahrainDataService, SECTORS, get_sectors, refresh_sectors_cache
 from data_sources import DataAggregator
 from data_sources.sijilat import SijilatSource
 from agents.competitor_enrichment import CompetitorEnrichment
 from web_search import search_web
+from openai import OpenAI
+import google.generativeai as genai
+import anthropic as anthropic_sdk
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,20 @@ ENV_PATH = Path(__file__).parent / '.env'
 load_dotenv(ENV_PATH)
 
 app = Flask(__name__)
+
+
+@app.before_request
+def _csrf_check():
+    """فحص CSRF بسيط عبر Origin header للطلبات المغيّرة للحالة."""
+    if request.method in ('POST', 'PUT', 'DELETE'):
+        origin = request.headers.get('Origin', '')
+        referer = request.headers.get('Referer', '')
+        # السماح بالطلبات المحلية أو من نفس الأصل
+        if origin and not any(origin.startswith(allowed) for allowed in ('http://localhost', 'http://127.0.0.1')):
+            host = request.host_url.rstrip('/')
+            if not origin.startswith(host):
+                return jsonify({'error': 'طلب غير مصرح به'}), 403
+
 
 market_agent = MarketLogicAgent()
 financial_agent = FinancialAgent()
@@ -45,8 +62,39 @@ data_aggregator = DataAggregator()
 # تهيئة قاعدة البيانات
 init_db()
 
-# Pending analysis params store (token → params dict, auto-expires on use)
+# Pending analysis params store (token → (params dict, timestamp), auto-expires on use)
 _pending_analyses = {}
+_PENDING_TTL_SECONDS = 600  # 10 minutes
+
+# Rate limiting: IP → list of timestamps
+_rate_limit_store = {}
+_RATE_LIMIT_MAX = 5  # max requests
+_RATE_LIMIT_WINDOW = 60  # per 60 seconds
+
+
+def _cleanup_pending():
+    """إزالة tokens المهجورة الأقدم من TTL."""
+    import time
+    now = time.time()
+    expired = [k for k, v in _pending_analyses.items()
+               if isinstance(v, tuple) and now - v[1] > _PENDING_TTL_SECONDS]
+    for k in expired:
+        _pending_analyses.pop(k, None)
+
+
+def _check_rate_limit(ip):
+    """فحص rate limit لـ IP معين. يرجع True إذا مسموح."""
+    import time
+    now = time.time()
+    timestamps = _rate_limit_store.get(ip, [])
+    # تنظيف timestamps القديمة
+    timestamps = [t for t in timestamps if now - t < _RATE_LIMIT_WINDOW]
+    if len(timestamps) >= _RATE_LIMIT_MAX:
+        _rate_limit_store[ip] = timestamps
+        return False
+    timestamps.append(now)
+    _rate_limit_store[ip] = timestamps
+    return True
 
 
 DEFAULT_MODELS = {
@@ -62,13 +110,18 @@ def validate_input(sector, api_key):
     """التحقق من صحة المدخلات وإرجاع رسالة خطأ أو None"""
     if not api_key:
         return 'الرجاء إدخال مفتاح API لـ Perplexity'
-    if not sector or sector not in SECTORS:
+    if not sector or sector not in get_sectors():
         return 'الرجاء اختيار قطاع صالح لدراسة الوساطة'
     return None
 
 
 @app.route('/')
-def index():
+def landing():
+    return render_template('landing.html')
+
+
+@app.route('/feasibility')
+def feasibility():
     return render_template('index.html')
 
 
@@ -86,8 +139,10 @@ def prepare_analysis():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'طلب غير صالح'}), 400
+    import time
+    _cleanup_pending()
     token = uuid.uuid4().hex[:16]
-    _pending_analyses[token] = data
+    _pending_analyses[token] = (data, time.time())
     return jsonify({'token': token})
 
 
@@ -95,8 +150,14 @@ def prepare_analysis():
 def analyze_stream():
     # Support both: token-based (new) and direct query params (legacy)
     token = request.args.get('token', '').strip()
+    # فحص rate limiting
+    client_ip = request.remote_addr or '127.0.0.1'
+    if not _check_rate_limit(client_ip):
+        return jsonify({'error': 'تم تجاوز الحد الأقصى للطلبات. الرجاء الانتظار دقيقة.'}), 429
+
     if token and token in _pending_analyses:
-        params = _pending_analyses.pop(token)
+        entry = _pending_analyses.pop(token)
+        params = entry[0] if isinstance(entry, tuple) else entry
         sector = params.get('sector', '').strip()
         provider = 'perplexity'
         model = params.get('model', '').strip() or get_default_model(provider)
@@ -130,7 +191,7 @@ def analyze_stream():
         return jsonify({'error': error}), 400
 
     # توليد نص الدراسة تلقائياً بناءً على القطاع
-    sector_name = SECTORS[sector]['name_ar']
+    sector_name = get_sectors()[sector]['name_ar']
     idea = f"دراسة جدوى إنشاء شركة وساطة تجارية في قطاع {sector_name} في مملكة البحرين"
     if notes:
         idea += f"\n\nملاحظات إضافية: {notes}"
@@ -288,6 +349,8 @@ def analyze_stream():
                 result = run_synthesizer()
                 synth_queue.put(("ok", result))
             except Exception as e:
+                logger.error(f"❌ فشل المُجمّع: {type(e).__name__}: {e}")
+                logger.error(f"📋 التتبع:\n{traceback.format_exc()}")
                 synth_queue.put(("error", str(e)))
 
         t = threading.Thread(target=synth_thread)
@@ -420,147 +483,159 @@ def dashboard():
     return jsonify(stats)
 
 
-def _parse_agent_analysis(json_str):
-    """تحويل JSON التحليل إلى نص مقروء."""
+@app.route('/api/sectors')
+def api_sectors():
+    """إرجاع قائمة القطاعات ديناميكياً (من data.gov.bh أو fallback)."""
+    sectors = get_sectors()
+    sector_list = []
+    for key, info in sectors.items():
+        sector_list.append({
+            'value': key,
+            'name_ar': info['name_ar'],
+            'icon': info.get('icon', '📊'),
+        })
+    return jsonify(sector_list)
+
+
+@app.route('/api/sectors/refresh', methods=['POST'])
+def api_sectors_refresh():
+    """إعادة جلب القطاعات من data.gov.bh."""
+    sectors = refresh_sectors_cache()
+    return jsonify({'success': True, 'count': len(sectors)})
+
+
+def _safe_parse_json(json_str, extractor):
+    """دالة عامة لتحويل JSON إلى نص مقروء مع معالجة الأخطاء."""
     if not json_str:
         return "غير متوفر"
     try:
         data = json.loads(json_str) if isinstance(json_str, str) else json_str
-        parts = []
-        if data.get('title'):
-            parts.append(f"العنوان: {data['title']}")
-        if data.get('summary'):
-            parts.append(f"الملخص: {data['summary']}")
-        if data.get('score') is not None:
-            parts.append(f"التقييم: {data['score']}/10")
-        if data.get('details'):
-            parts.append("النقاط الرئيسية:")
-            for i, d in enumerate(data['details'], 1):
-                parts.append(f"  {i}. {d}")
-        if data.get('recommendation'):
-            parts.append(f"التوصية: {data['recommendation']}")
-        return "\n".join(parts) if parts else json_str[:500]
+        parts = extractor(data)
+        return "\n".join(parts) if parts else str(json_str)[:500]
     except (json.JSONDecodeError, TypeError, AttributeError):
         return str(json_str)[:500]
+
+
+def _extract_agent_fields(data):
+    parts = []
+    if data.get('title'):
+        parts.append(f"العنوان: {data['title']}")
+    if data.get('summary'):
+        parts.append(f"الملخص: {data['summary']}")
+    if data.get('score') is not None:
+        parts.append(f"التقييم: {data['score']}/10")
+    if data.get('details'):
+        parts.append("النقاط الرئيسية:")
+        for i, d in enumerate(data['details'], 1):
+            parts.append(f"  {i}. {d}")
+    if data.get('recommendation'):
+        parts.append(f"التوصية: {data['recommendation']}")
+    return parts
+
+
+def _extract_brokerage_fields(data):
+    parts = []
+    if data.get('title'):
+        parts.append(f"العنوان: {data['title']}")
+    if data.get('summary'):
+        parts.append(f"الملخص: {data['summary']}")
+    if data.get('models'):
+        parts.append("النماذج:")
+        for m in data['models']:
+            name = m.get('name', '')
+            score = m.get('score', 0)
+            fit = m.get('fit_for_bahrain', '')
+            parts.append(f"  - {name}: {score}/10 (ملاءمة: {fit})")
+            if m.get('pros'):
+                parts.append(f"    إيجابيات: {', '.join(m['pros'][:3])}")
+            if m.get('cons'):
+                parts.append(f"    سلبيات: {', '.join(m['cons'][:2])}")
+    if data.get('recommended_model'):
+        parts.append(f"النموذج الموصى به: {data['recommended_model']}")
+    if data.get('recommendation_reason'):
+        parts.append(f"سبب التوصية: {data['recommendation_reason']}")
+    return parts
+
+
+def _extract_verdict_fields(data):
+    parts = []
+    if data.get('verdict'):
+        parts.append(f"القرار: {data['verdict']}")
+    if data.get('overall_score') is not None:
+        parts.append(f"التقييم الإجمالي: {data['overall_score']}/10")
+    if data.get('summary'):
+        parts.append(f"الملخص: {data['summary']}")
+    if data.get('score_justification'):
+        parts.append(f"تبرير التقييم: {data['score_justification']}")
+    if data.get('recommended_model'):
+        parts.append(f"النموذج الموصى به: {data['recommended_model']}")
+    if data.get('model_justification'):
+        parts.append(f"تبرير النموذج: {data['model_justification']}")
+    for key, label in [('consensus', 'نقاط التوافق'), ('conflicts', 'نقاط الاختلاف'), ('advice', 'النصائح الاستراتيجية')]:
+        items = data.get(key, [])
+        if items:
+            parts.append(f"{label}:")
+            for i, item in enumerate(items, 1):
+                parts.append(f"  {i}. {item}")
+    return parts
+
+
+def _extract_swot_fields(data):
+    parts = []
+    for key, label in [('strengths', 'نقاط القوة'), ('weaknesses', 'نقاط الضعف'),
+                       ('opportunities', 'الفرص'), ('threats', 'التهديدات')]:
+        items = data.get(key, [])
+        if items:
+            parts.append(f"{label}:")
+            for i, item in enumerate(items, 1):
+                point = item.get('point', item) if isinstance(item, dict) else item
+                parts.append(f"  {i}. {point}")
+    return parts
+
+
+def _extract_action_plan_fields(data):
+    parts = []
+    if data.get('executive_summary'):
+        parts.append(f"الملخص التنفيذي: {data['executive_summary']}")
+    if data.get('total_budget'):
+        parts.append(f"الميزانية الإجمالية: {data['total_budget']}")
+    if data.get('phases'):
+        parts.append("المراحل:")
+        for phase in data['phases']:
+            name = phase.get('name', 'مرحلة')
+            duration = phase.get('duration', '')
+            parts.append(f"  - {name} ({duration})")
+            for task in phase.get('tasks', []):
+                parts.append(f"    • {task}")
+    if data.get('key_metrics'):
+        parts.append("مؤشرات الأداء:")
+        for i, m in enumerate(data['key_metrics'], 1):
+            parts.append(f"  {i}. {m}")
+    if data.get('critical_success_factors'):
+        parts.append("عوامل النجاح الحاسمة:")
+        for i, f_item in enumerate(data['critical_success_factors'], 1):
+            parts.append(f"  {i}. {f_item}")
+    return parts
+
+
+def _parse_agent_analysis(json_str):
+    return _safe_parse_json(json_str, _extract_agent_fields)
 
 
 def _parse_brokerage_models(json_str):
-    """تحويل JSON تحليل نماذج الوساطة إلى نص مقروء."""
-    if not json_str:
-        return "غير متوفر"
-    try:
-        data = json.loads(json_str) if isinstance(json_str, str) else json_str
-        parts = []
-        if data.get('title'):
-            parts.append(f"العنوان: {data['title']}")
-        if data.get('summary'):
-            parts.append(f"الملخص: {data['summary']}")
-        if data.get('models'):
-            parts.append("النماذج:")
-            for m in data['models']:
-                name = m.get('name', '')
-                score = m.get('score', 0)
-                fit = m.get('fit_for_bahrain', '')
-                parts.append(f"  - {name}: {score}/10 (ملاءمة: {fit})")
-                if m.get('pros'):
-                    parts.append(f"    إيجابيات: {', '.join(m['pros'][:3])}")
-                if m.get('cons'):
-                    parts.append(f"    سلبيات: {', '.join(m['cons'][:2])}")
-        if data.get('recommended_model'):
-            parts.append(f"النموذج الموصى به: {data['recommended_model']}")
-        if data.get('recommendation_reason'):
-            parts.append(f"سبب التوصية: {data['recommendation_reason']}")
-        return "\n".join(parts) if parts else json_str[:500]
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return str(json_str)[:500]
+    return _safe_parse_json(json_str, _extract_brokerage_fields)
 
 
 def _parse_verdict(json_str):
-    """تحويل JSON الحكم النهائي إلى نص مقروء."""
-    if not json_str:
-        return "غير متوفر"
-    try:
-        data = json.loads(json_str) if isinstance(json_str, str) else json_str
-        parts = []
-        if data.get('verdict'):
-            parts.append(f"القرار: {data['verdict']}")
-        if data.get('overall_score') is not None:
-            parts.append(f"التقييم الإجمالي: {data['overall_score']}/10")
-        if data.get('summary'):
-            parts.append(f"الملخص: {data['summary']}")
-        if data.get('score_justification'):
-            parts.append(f"تبرير التقييم: {data['score_justification']}")
-        if data.get('recommended_model'):
-            parts.append(f"النموذج الموصى به: {data['recommended_model']}")
-        if data.get('model_justification'):
-            parts.append(f"تبرير النموذج: {data['model_justification']}")
-        if data.get('consensus'):
-            parts.append("نقاط التوافق:")
-            for i, c in enumerate(data['consensus'], 1):
-                parts.append(f"  {i}. {c}")
-        if data.get('conflicts'):
-            parts.append("نقاط الاختلاف:")
-            for i, c in enumerate(data['conflicts'], 1):
-                parts.append(f"  {i}. {c}")
-        if data.get('advice'):
-            parts.append("النصائح الاستراتيجية:")
-            for i, a in enumerate(data['advice'], 1):
-                parts.append(f"  {i}. {a}")
-        return "\n".join(parts) if parts else json_str[:500]
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return str(json_str)[:500]
+    return _safe_parse_json(json_str, _extract_verdict_fields)
 
 
 def _parse_swot(json_str):
-    """تحويل JSON تحليل SWOT إلى نص مقروء."""
-    if not json_str:
-        return "غير متوفر"
-    try:
-        data = json.loads(json_str) if isinstance(json_str, str) else json_str
-        parts = []
-        for key, label in [('strengths', 'نقاط القوة'), ('weaknesses', 'نقاط الضعف'),
-                           ('opportunities', 'الفرص'), ('threats', 'التهديدات')]:
-            items = data.get(key, [])
-            if items:
-                parts.append(f"{label}:")
-                for i, item in enumerate(items, 1):
-                    point = item.get('point', item) if isinstance(item, dict) else item
-                    parts.append(f"  {i}. {point}")
-        return "\n".join(parts) if parts else json_str[:500]
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return str(json_str)[:500]
+    return _safe_parse_json(json_str, _extract_swot_fields)
 
 
 def _parse_action_plan(json_str):
-    """تحويل JSON خطة العمل إلى نص مقروء."""
-    if not json_str:
-        return "غير متوفر"
-    try:
-        data = json.loads(json_str) if isinstance(json_str, str) else json_str
-        parts = []
-        if data.get('executive_summary'):
-            parts.append(f"الملخص التنفيذي: {data['executive_summary']}")
-        if data.get('total_budget'):
-            parts.append(f"الميزانية الإجمالية: {data['total_budget']}")
-        if data.get('phases'):
-            parts.append("المراحل:")
-            for phase in data['phases']:
-                name = phase.get('name', 'مرحلة')
-                duration = phase.get('duration', '')
-                parts.append(f"  - {name} ({duration})")
-                for task in phase.get('tasks', []):
-                    parts.append(f"    • {task}")
-        if data.get('key_metrics'):
-            parts.append("مؤشرات الأداء:")
-            for i, m in enumerate(data['key_metrics'], 1):
-                parts.append(f"  {i}. {m}")
-        if data.get('critical_success_factors'):
-            parts.append("عوامل النجاح الحاسمة:")
-            for i, f in enumerate(data['critical_success_factors'], 1):
-                parts.append(f"  {i}. {f}")
-        return "\n".join(parts) if parts else json_str[:500]
-    except (json.JSONDecodeError, TypeError, AttributeError):
-        return str(json_str)[:500]
+    return _safe_parse_json(json_str, _extract_action_plan_fields)
 
 
 def _build_followup_context(analysis):
@@ -691,7 +766,6 @@ def ask_followup():
         if provider == 'openai' and web_search_enabled:
             logger.info("🔍 OpenAI: استخدام بحث الويب الأصلي (Responses API + web_search)")
             try:
-                from openai import OpenAI
                 client = OpenAI(api_key=api_key)
 
                 # بناء input messages لـ Responses API
@@ -716,7 +790,6 @@ def ask_followup():
                 logger.warning(f"⚠️ OpenAI web_search فشل ({type(e).__name__}: {e}), fallback إلى DuckDuckGo")
                 web_ctx = _ddg_web_context()
                 messages = _build_messages(context + web_ctx)
-                from openai import OpenAI
                 client = OpenAI(api_key=api_key)
                 response = client.chat.completions.create(
                     model=model or get_default_model(provider),
@@ -732,7 +805,6 @@ def ask_followup():
         elif provider == 'gemini' and web_search_enabled:
             logger.info("🔍 Gemini: استخدام Google Search Grounding")
             try:
-                import google.generativeai as genai
                 genai.configure(api_key=api_key)
                 # إنشاء أداة google_search_retrieval
                 google_search_tool = genai.protos.Tool(
@@ -761,7 +833,6 @@ def ask_followup():
                 logger.warning(f"⚠️ Gemini grounding فشل ({type(e).__name__}: {e}), fallback إلى DuckDuckGo")
                 web_ctx = _ddg_web_context()
                 messages = _build_messages(context + web_ctx)
-                import google.generativeai as genai
                 genai.configure(api_key=api_key)
                 gemini_model = genai.GenerativeModel(
                     model or get_default_model(provider),
@@ -786,7 +857,6 @@ def ask_followup():
             logger.info("🔍 Anthropic: استخدام DuckDuckGo (لا يدعم بحث ويب أصلي)")
             web_ctx = _ddg_web_context()
             messages = _build_messages(context + web_ctx)
-            import anthropic as anthropic_sdk
             client = anthropic_sdk.Anthropic(api_key=api_key)
             system_msg = ""
             api_messages = []
@@ -810,7 +880,6 @@ def ask_followup():
         else:
             messages = _build_messages(context)
             if provider == 'gemini':
-                import google.generativeai as genai
                 genai.configure(api_key=api_key)
                 gemini_model = genai.GenerativeModel(
                     model or get_default_model(provider),
@@ -827,7 +896,6 @@ def ask_followup():
                 )
                 answer = gemini_resp.text or "لم أتمكن من الإجابة"
             elif provider == 'anthropic':
-                import anthropic as anthropic_sdk
                 client = anthropic_sdk.Anthropic(api_key=api_key)
                 system_msg = ""
                 api_messages = []
@@ -844,7 +912,6 @@ def ask_followup():
                 )
                 answer = (response.content[0].text if response.content else None) or "لم أتمكن من الإجابة"
             else:
-                from openai import OpenAI
                 client = OpenAI(api_key=api_key)
                 response = client.chat.completions.create(
                     model=model or get_default_model(provider),
@@ -1001,7 +1068,7 @@ def data_sources_fetch():
 
     return jsonify({
         'sector': sector,
-        'sector_name_ar': SECTORS[sector]['name_ar'],
+        'sector_name_ar': get_sectors()[sector]['name_ar'],
         'fetched_at': _dt.now().isoformat(),
         'total_data_points': total_points,
         'sources': sources_response,
@@ -1162,6 +1229,132 @@ def data_status():
     return jsonify(status)
 
 
+# ═══════════════════════════════════════════
+# القسم الثاني: كشف الفجوات والفرص
+# ═══════════════════════════════════════════
+
+@app.route('/gaps')
+def gaps_page():
+    """صفحة كشف الفجوات والفرص."""
+    return render_template('gaps.html')
+
+
+@app.route('/api/gap-analysis', methods=['POST'])
+def gap_analysis():
+    """تحليل فجوات السوق لقطاع محدد - SSE streaming."""
+    data = request.json
+    if not data:
+        return jsonify({'error': 'بيانات مطلوبة'}), 400
+
+    sector = data.get('sector', '')
+    api_key = data.get('api_key', '')
+    provider = data.get('provider', 'openai')
+
+    sectors = get_sectors()
+    if sector not in sectors:
+        return jsonify({'error': f'قطاع غير معروف: {sector}'}), 400
+    if not api_key:
+        return jsonify({'error': 'مفتاح API مطلوب'}), 400
+
+    sector_info = sectors[sector]
+    token = str(uuid.uuid4())[:8]
+    _pending_analyses[token] = (data, __import__('time').time())
+
+    return jsonify({'token': token, 'sector': sector, 'sector_name': sector_info['name_ar']})
+
+
+@app.route('/api/gap-analysis-stream')
+def gap_analysis_stream():
+    """SSE stream for gap analysis results."""
+    token = request.args.get('token', '')
+    pending = _pending_analyses.get(token)
+    if not pending:
+        return jsonify({'error': 'Token غير صالح'}), 404
+
+    data, _ = pending
+    del _pending_analyses[token]
+
+    sector = data.get('sector', '')
+    api_key = data.get('api_key', '')
+    provider = data.get('provider', 'openai')
+    model_override = data.get('model_override', '')
+    sector_info = get_sectors().get(sector, {})
+
+    def generate():
+        event_queue = queue.Queue()
+
+        def run_analysis():
+            try:
+                # Step 1: Fetch all data
+                event_queue.put(('status', {'message': 'جاري جلب البيانات من 10 مصادر...', 'step': 1}))
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                aggregator = DataAggregator()
+                aggregated_data = loop.run_until_complete(aggregator.fetch_all(sector))
+                loop.close()
+
+                # Count successful sources
+                active = sum(1 for v in aggregated_data.values() if not v.get('error'))
+                total_points = sum(v.get('data_points', 0) for v in aggregated_data.values() if not v.get('error'))
+
+                event_queue.put(('data_collected', {
+                    'active_sources': active,
+                    'total_sources': len(aggregated_data),
+                    'total_data_points': total_points,
+                }))
+
+                # Step 2: Build context for gap analyzer
+                event_queue.put(('status', {'message': 'جاري تحليل الفجوات والفرص...', 'step': 2}))
+
+                context = aggregator.build_agent_context(sector, 'gap_analysis', aggregated_data)
+
+                # Step 3: Run gap analyzer AI agent
+                from agents.gap_analyzer import GapAnalyzerAgent
+                gap_agent = GapAnalyzerAgent()
+
+                idea = f"تحليل فجوات السوق وفرص الوساطة التجارية في قطاع: {sector_info.get('name_ar', sector)}"
+                if sector_info.get('brokerage_context'):
+                    idea += f"\n\nسياق الوساطة: {sector_info['brokerage_context']}"
+
+                result = gap_agent.analyze(
+                    idea=idea,
+                    market_context=context,
+                    provider=provider,
+                    api_key=api_key,
+                    model_override=model_override or None,
+                )
+
+                event_queue.put(('gap_result', {'content': result, 'sector': sector}))
+
+                # Step 4: Build data attribution
+                attribution = aggregator.build_data_attribution(aggregated_data)
+                event_queue.put(('attribution', attribution))
+
+                event_queue.put(('done', {'sector': sector}))
+
+            except Exception as e:
+                logger.error(f"❌ خطأ في تحليل الفجوات: {e}\n{traceback.format_exc()}")
+                event_queue.put(('error', {'message': str(e)}))
+
+        thread = threading.Thread(target=run_analysis)
+        thread.start()
+
+        while True:
+            try:
+                event_name, event_data = event_queue.get(timeout=300)
+                yield f"event: {event_name}\ndata: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                if event_name in ('done', 'error'):
+                    break
+            except queue.Empty:
+                yield f"event: error\ndata: {json.dumps({'message': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
+                break
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
 if __name__ == '__main__':
+    is_debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     webbrowser.open('http://localhost:5000')
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=is_debug, use_reloader=False)

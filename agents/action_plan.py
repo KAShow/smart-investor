@@ -44,7 +44,7 @@ SYSTEM_PROMPT = """أنت مستشار أعمال استراتيجي متخصص 
 
 class ActionPlanAgent:
     def __init__(self):
-        self.model = "gpt-5.2"
+        self.model = "sonar-pro"
         self.system_prompt = SYSTEM_PROMPT
 
     @retry(

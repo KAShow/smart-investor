@@ -3,7 +3,7 @@
 import logging
 import aiohttp
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class WorldBankSource(DataSourceBase):
         return 30 * 24 * 3600  # 30 days
 
     async def fetch(self, sector: str) -> dict:
-        mapping = SECTOR_MAP.get(sector, {})
+        mapping = get_sector_mapping(sector)
         sector_indicators = mapping.get("worldbank_indicators", ["NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG"])
         # Always include core macro indicators + sector-specific ones
         core = ["NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG", "SP.POP.TOTL", "SL.UEM.TOTL.ZS", "NE.TRD.GNFS.ZS"]

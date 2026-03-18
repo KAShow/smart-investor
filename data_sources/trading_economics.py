@@ -4,7 +4,7 @@ import os
 import logging
 import aiohttp
 from .base import DataSourceBase
-from .sector_mapping import SECTOR_MAP
+from .sector_mapping import SECTOR_MAP, get_sector_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class TradingEconomicsSource(DataSourceBase):
         api_key = os.environ.get("TRADING_ECONOMICS_API_KEY", "")
         enabled = os.environ.get("TRADING_ECONOMICS_ENABLED", "false").lower() == "true"
 
-        mapping = SECTOR_MAP.get(sector, {})
+        mapping = get_sector_mapping(sector)
         te_sector = mapping.get("trading_economics_sector", "")
 
         # If API is available, try live data
