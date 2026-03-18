@@ -20,7 +20,10 @@
       "Bash(\"/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe\" -c \":*)",
       "Bash(for f:*)",
       "Bash(do sed:*)",
-      "Bash(sed -i 's/SECTOR_MAP\\\\.get\\(sector, {}\\)/get_sector_mapping\\(sector\\)/g' \"$f\")"
+      "Bash(sed -i 's/SECTOR_MAP\\\\.get\\(sector, {}\\)/get_sector_mapping\\(sector\\)/g' \"$f\")",
+      "Bash(do)",
+      "Bash(sed -i '/\\\\*\\\\*تعليمات استخدام البيانات:\\\\*\\\\*/i\\\\- **بوابة البيانات المفتوحة \\(data.gov.bh\\)**: سكان حسب المحافظة، صادرات، سياحة، تراخيص، بطالة، أجور\\\\n- **Google Trends**: اتجاهات البحث في البحرين - مؤشر الطلب الرقمي الحقيقي\\\\n- **سوق الوظائف**: إعلانات التوظيف - مؤشر قوي على نمو القطاع والشركات النشطة\\\\n' \"$f\")",
+      "Bash(echo \"Updated $f\")"
     ]
   }
 }
