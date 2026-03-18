@@ -152,9 +152,7 @@
                 <div class="form-group" style="flex: 0.5;">
                     <label>المزود</label>
                     <div class="provider-row">
-                        <button class="provider-btn active" data-provider="openai">OpenAI</button>
-                        <button class="provider-btn" data-provider="anthropic">Claude</button>
-                        <button class="provider-btn" data-provider="gemini">Gemini</button>
+                        <button class="provider-btn active" data-provider="perplexity">Perplexity</button>
                     </div>
                 </div>
                 <button class="btn-analyze" id="analyzeBtn" onclick="startAnalysis()">🔍 تحليل الفجوات</button>
@@ -214,7 +212,7 @@
     </div>
 
     <script>
-    let selectedProvider = 'openai';
+    let selectedProvider = 'perplexity';
 
     // Provider buttons
     document.querySelectorAll('.provider-btn').forEach(btn => {

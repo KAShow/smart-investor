@@ -1011,7 +1011,7 @@ def get_providers():
 
 
 @app.route('/sectors')
-def get_sectors():
+def sectors_list():
     """قائمة القطاعات المتاحة لدراسة جدوى الوساطة."""
     return jsonify({k: {"name_ar": v["name_ar"], "icon": v["icon"]} for k, v in SECTORS.items()})
 
@@ -1292,7 +1292,6 @@ def gap_analysis_stream():
                 asyncio.set_event_loop(loop)
                 aggregator = DataAggregator()
                 aggregated_data = loop.run_until_complete(aggregator.fetch_all(sector))
-                loop.close()
 
                 # Count successful sources
                 active = sum(1 for v in aggregated_data.values() if not v.get('error'))
@@ -1317,13 +1316,14 @@ def gap_analysis_stream():
                 if sector_info.get('brokerage_context'):
                     idea += f"\n\nسياق الوساطة: {sector_info['brokerage_context']}"
 
-                result = gap_agent.analyze(
+                result = loop.run_until_complete(gap_agent.analyze(
                     idea=idea,
                     market_context=context,
                     provider=provider,
                     api_key=api_key,
                     model_override=model_override or None,
-                )
+                ))
+                loop.close()
 
                 event_queue.put(('gap_result', {'content': result, 'sector': sector}))
 
