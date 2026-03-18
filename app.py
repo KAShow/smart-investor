@@ -116,7 +116,12 @@ def validate_input(sector, api_key):
 
 
 @app.route('/')
-def index():
+def landing():
+    return render_template('landing.html')
+
+
+@app.route('/feasibility')
+def feasibility():
     return render_template('index.html')
 
 
@@ -1222,6 +1227,131 @@ def data_status():
     """حالة آخر تحديث للبيانات."""
     status = get_bahrain_data_status()
     return jsonify(status)
+
+
+# ═══════════════════════════════════════════
+# القسم الثاني: كشف الفجوات والفرص
+# ═══════════════════════════════════════════
+
+@app.route('/gaps')
+def gaps_page():
+    """صفحة كشف الفجوات والفرص."""
+    return render_template('gaps.html')
+
+
+@app.route('/api/gap-analysis', methods=['POST'])
+def gap_analysis():
+    """تحليل فجوات السوق لقطاع محدد - SSE streaming."""
+    data = request.json
+    if not data:
+        return jsonify({'error': 'بيانات مطلوبة'}), 400
+
+    sector = data.get('sector', '')
+    api_key = data.get('api_key', '')
+    provider = data.get('provider', 'openai')
+
+    sectors = get_sectors()
+    if sector not in sectors:
+        return jsonify({'error': f'قطاع غير معروف: {sector}'}), 400
+    if not api_key:
+        return jsonify({'error': 'مفتاح API مطلوب'}), 400
+
+    sector_info = sectors[sector]
+    token = str(uuid.uuid4())[:8]
+    _pending_analyses[token] = (data, __import__('time').time())
+
+    return jsonify({'token': token, 'sector': sector, 'sector_name': sector_info['name_ar']})
+
+
+@app.route('/api/gap-analysis-stream')
+def gap_analysis_stream():
+    """SSE stream for gap analysis results."""
+    token = request.args.get('token', '')
+    pending = _pending_analyses.get(token)
+    if not pending:
+        return jsonify({'error': 'Token غير صالح'}), 404
+
+    data, _ = pending
+    del _pending_analyses[token]
+
+    sector = data.get('sector', '')
+    api_key = data.get('api_key', '')
+    provider = data.get('provider', 'openai')
+    model_override = data.get('model_override', '')
+    sector_info = get_sectors().get(sector, {})
+
+    def generate():
+        event_queue = queue.Queue()
+
+        def run_analysis():
+            try:
+                # Step 1: Fetch all data
+                event_queue.put(('status', {'message': 'جاري جلب البيانات من 10 مصادر...', 'step': 1}))
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                aggregator = DataAggregator()
+                aggregated_data = loop.run_until_complete(aggregator.fetch_all(sector))
+                loop.close()
+
+                # Count successful sources
+                active = sum(1 for v in aggregated_data.values() if not v.get('error'))
+                total_points = sum(v.get('data_points', 0) for v in aggregated_data.values() if not v.get('error'))
+
+                event_queue.put(('data_collected', {
+                    'active_sources': active,
+                    'total_sources': len(aggregated_data),
+                    'total_data_points': total_points,
+                }))
+
+                # Step 2: Build context for gap analyzer
+                event_queue.put(('status', {'message': 'جاري تحليل الفجوات والفرص...', 'step': 2}))
+
+                context = aggregator.build_agent_context(sector, 'gap_analysis', aggregated_data)
+
+                # Step 3: Run gap analyzer AI agent
+                from agents.gap_analyzer import GapAnalyzerAgent
+                gap_agent = GapAnalyzerAgent()
+
+                idea = f"تحليل فجوات السوق وفرص الوساطة التجارية في قطاع: {sector_info.get('name_ar', sector)}"
+                if sector_info.get('brokerage_context'):
+                    idea += f"\n\nسياق الوساطة: {sector_info['brokerage_context']}"
+
+                result = gap_agent.analyze(
+                    idea=idea,
+                    market_context=context,
+                    provider=provider,
+                    api_key=api_key,
+                    model_override=model_override or None,
+                )
+
+                event_queue.put(('gap_result', {'content': result, 'sector': sector}))
+
+                # Step 4: Build data attribution
+                attribution = aggregator.build_data_attribution(aggregated_data)
+                event_queue.put(('attribution', attribution))
+
+                event_queue.put(('done', {'sector': sector}))
+
+            except Exception as e:
+                logger.error(f"❌ خطأ في تحليل الفجوات: {e}\n{traceback.format_exc()}")
+                event_queue.put(('error', {'message': str(e)}))
+
+        thread = threading.Thread(target=run_analysis)
+        thread.start()
+
+        while True:
+            try:
+                event_name, event_data = event_queue.get(timeout=300)
+                yield f"event: {event_name}\ndata: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                if event_name in ('done', 'error'):
+                    break
+            except queue.Empty:
+                yield f"event: error\ndata: {json.dumps({'message': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
+                break
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
 
 if __name__ == '__main__':

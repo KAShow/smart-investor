@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كشف الفجوات والفرص - المستثمر الذكي البحريني</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f172a; --card: #1e293b; --card-hover: #334155;
+            --text: #e2e8f0; --text-muted: #94a3b8; --accent: #3b82f6;
+            --green: #22c55e; --red: #ef4444; --yellow: #eab308; --orange: #f97316;
+            --border: #334155;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .header { text-align: center; padding: 30px 0; }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .header h1 span { color: var(--accent); }
+        .header p { color: var(--text-muted); font-size: 1.1em; }
+        .back-link { color: var(--accent); text-decoration: none; display: inline-block; margin-bottom: 20px; }
+        .back-link:hover { text-decoration: underline; }
+
+        /* Form */
+        .form-card { background: var(--card); border-radius: 16px; padding: 30px; margin-bottom: 30px; border: 1px solid var(--border); }
+        .form-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: end; }
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9em; }
+        .form-group select, .form-group input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1em; }
+        .btn-analyze { padding: 12px 30px; border-radius: 10px; border: none; background: var(--accent); color: white; font-size: 1.1em; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        .btn-analyze:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Status */
+        .status-bar { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; border: 1px solid var(--border); }
+        .status-bar .step { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--text-muted); }
+        .status-bar .step.active { color: var(--accent); }
+        .status-bar .step.done { color: var(--green); }
+        .spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Score card */
+        .score-section { display: none; }
+        .score-card { background: var(--card); border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 30px; border: 1px solid var(--border); }
+        .score-ring { width: 150px; height: 150px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 3em; font-weight: bold; margin: 20px 0; position: relative; }
+        .score-ring::before { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 5px solid transparent; }
+        .score-high { background: rgba(34,197,94,0.15); color: var(--green); }
+        .score-high::before { border-color: var(--green); }
+        .score-mid { background: rgba(234,179,8,0.15); color: var(--yellow); }
+        .score-mid::before { border-color: var(--yellow); }
+        .score-low { background: rgba(239,68,68,0.15); color: var(--red); }
+        .score-low::before { border-color: var(--red); }
+        .score-label { font-size: 1.3em; color: var(--text-muted); }
+        .assessment { font-size: 1.1em; margin-top: 15px; line-height: 1.8; }
+
+        /* Score breakdown */
+        .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 25px; }
+        .breakdown-item { background: var(--bg); border-radius: 12px; padding: 15px; text-align: center; }
+        .breakdown-item .score { font-size: 2em; font-weight: bold; }
+        .breakdown-item .label { color: var(--text-muted); font-size: 0.85em; margin-top: 5px; }
+
+        /* Cards grid */
+        .section-title { font-size: 1.5em; margin: 30px 0 15px; display: flex; align-items: center; gap: 10px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; }
+        .gap-card, .opp-card, .entry-card { background: var(--card); border-radius: 12px; padding: 20px; border-right: 4px solid; transition: transform 0.2s; }
+        .gap-card:hover, .opp-card:hover, .entry-card:hover { transform: translateY(-3px); }
+        .gap-card.high { border-color: var(--red); }
+        .gap-card.medium { border-color: var(--orange); }
+        .gap-card.low { border-color: var(--yellow); }
+        .opp-card.high { border-color: var(--green); }
+        .opp-card.medium { border-color: var(--accent); }
+        .opp-card.low { border-color: var(--text-muted); }
+        .entry-card { border-color: var(--accent); }
+        .card-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
+        .card-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
+        .badge-high { background: rgba(239,68,68,0.2); color: var(--red); }
+        .badge-medium { background: rgba(249,115,22,0.2); color: var(--orange); }
+        .badge-low { background: rgba(234,179,8,0.2); color: var(--yellow); }
+        .badge-green-high { background: rgba(34,197,94,0.2); color: var(--green); }
+        .badge-green-medium { background: rgba(59,130,246,0.2); color: var(--accent); }
+        .card-text { color: var(--text-muted); margin-top: 8px; line-height: 1.6; }
+        .card-meta { display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; }
+        .card-meta span { color: var(--text-muted); font-size: 0.85em; }
+
+        /* Market signals */
+        .signals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .signal-card { background: var(--card); border-radius: 12px; padding: 20px; text-align: center; }
+        .signal-icon { font-size: 2em; margin-bottom: 10px; }
+        .signal-value { font-size: 1.2em; font-weight: bold; }
+        .signal-label { color: var(--text-muted); font-size: 0.85em; margin-top: 5px; }
+
+        /* AI Analysis */
+        .ai-section { background: var(--card); border-radius: 16px; padding: 25px; margin-top: 30px; border: 1px solid var(--border); }
+        .ai-section h3 { margin-bottom: 15px; }
+        .ai-text { line-height: 1.8; white-space: pre-wrap; }
+
+        /* Risks */
+        .risks-list { list-style: none; }
+        .risks-list li { padding: 10px 15px; background: rgba(239,68,68,0.1); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .risks-list li::before { content: '⚠'; }
+
+        /* Attribution */
+        .attribution { background: var(--card); border-radius: 12px; padding: 20px; margin-top: 30px; }
+        .attribution-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+        .attr-stat { text-align: center; }
+        .attr-stat .num { font-size: 2em; font-weight: bold; color: var(--accent); }
+        .attr-stat .label { color: var(--text-muted); font-size: 0.85em; }
+
+        /* PDF button */
+        .btn-pdf { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; font-size: 1em; margin-top: 20px; }
+        .btn-pdf:hover { background: var(--accent); color: white; }
+
+        /* Provider selector */
+        .provider-row { display: flex; gap: 10px; margin-top: 10px; }
+        .provider-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+        .provider-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.1); }
+
+        @media print {
+            body { background: white; color: black; }
+            .form-card, .status-bar, .btn-pdf, .back-link, .btn-analyze { display: none !important; }
+            .score-section { display: block !important; }
+            .container { max-width: 100%; }
+            * { color: black !important; background: white !important; border-color: #ddd !important; }
+            .score-ring { border: 3px solid #333 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">→ العودة للصفحة الرئيسية</a>
+
+        <div class="header">
+            <h1>🔍 كشف <span>الفجوات والفرص</span></h1>
+            <p>اختر قطاعاً لتحليل فجوات السوق وفرص الوساطة التجارية بناءً على 10 مصادر بيانات حقيقية</p>
+        </div>
+
+        <!-- Form -->
+        <div class="form-card">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>القطاع</label>
+                    <select id="sectorSelect">
+                        <option value="">جاري تحميل القطاعات...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>مفتاح API</label>
+                    <input type="password" id="apiKey" placeholder="أدخل مفتاح API">
+                </div>
+                <div class="form-group" style="flex: 0.5;">
+                    <label>المزود</label>
+                    <div class="provider-row">
+                        <button class="provider-btn active" data-provider="openai">OpenAI</button>
+                        <button class="provider-btn" data-provider="anthropic">Claude</button>
+                        <button class="provider-btn" data-provider="gemini">Gemini</button>
+                    </div>
+                </div>
+                <button class="btn-analyze" id="analyzeBtn" onclick="startAnalysis()">🔍 تحليل الفجوات</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status-bar" id="statusBar">
+            <div class="step" id="step1"><span class="spinner"></span> جاري جلب البيانات من 10 مصادر...</div>
+            <div class="step" id="step2"><span class="spinner"></span> جاري تحليل الفجوات بالذكاء الاصطناعي...</div>
+        </div>
+
+        <!-- Results -->
+        <div class="score-section" id="results">
+            <!-- Score Card -->
+            <div class="score-card">
+                <div class="score-label">مؤشر الفرصة</div>
+                <div class="score-ring" id="scoreRing">-</div>
+                <div class="assessment" id="assessment"></div>
+                <div class="breakdown" id="breakdown"></div>
+            </div>
+
+            <!-- Market Signals -->
+            <h2 class="section-title">📡 إشارات السوق</h2>
+            <div class="signals-grid" id="signals"></div>
+
+            <!-- Gaps -->
+            <h2 class="section-title">🔴 الفجوات المكتشفة</h2>
+            <div class="cards-grid" id="gaps"></div>
+
+            <!-- Opportunities -->
+            <h2 class="section-title">🟢 الفرص المتاحة</h2>
+            <div class="cards-grid" id="opportunities"></div>
+
+            <!-- Brokerage Entry Points -->
+            <h2 class="section-title">🎯 نقاط دخول الوسيط</h2>
+            <div class="cards-grid" id="entryPoints"></div>
+
+            <!-- Risks -->
+            <h2 class="section-title">⚠ المخاطر</h2>
+            <ul class="risks-list" id="risks"></ul>
+
+            <!-- Recommendation -->
+            <div class="ai-section">
+                <h3>💡 التوصية النهائية</h3>
+                <div class="ai-text" id="recommendation"></div>
+            </div>
+
+            <!-- Attribution -->
+            <div class="attribution" id="attribution">
+                <h3 style="margin-bottom: 15px;">📊 مصادر البيانات</h3>
+                <div class="attribution-stats" id="attrStats"></div>
+            </div>
+
+            <button class="btn-pdf" onclick="window.print()">📄 تصدير PDF</button>
+        </div>
+    </div>
+
+    <script>
+    let selectedProvider = 'openai';
+
+    // Provider buttons
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedProvider = btn.dataset.provider;
+        });
+    });
+
+    // Load sectors
+    fetch('/api/sectors')
+        .then(r => r.json())
+        .then(sectors => {
+            const sel = document.getElementById('sectorSelect');
+            sel.innerHTML = '<option value="">اختر القطاع...</option>';
+            sectors.forEach(s => {
+                sel.innerHTML += `<option value="${s.value}">${s.icon} ${s.name_ar}</option>`;
+            });
+        });
+
+    function startAnalysis() {
+        const sector = document.getElementById('sectorSelect').value;
+        const apiKey = document.getElementById('apiKey').value;
+        if (!sector || !apiKey) {
+            alert('اختر القطاع وأدخل مفتاح API');
+            return;
+        }
+
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('statusBar').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('step1').className = 'step active';
+        document.getElementById('step2').className = 'step';
+
+        // Request token
+        fetch('/api/gap-analysis', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sector, api_key: apiKey, provider: selectedProvider})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { alert(data.error); document.getElementById('analyzeBtn').disabled = false; return; }
+            listenToStream(data.token);
+        });
+    }
+
+    function listenToStream(token) {
+        const es = new EventSource(`/api/gap-analysis-stream?token=${token}`);
+
+        es.addEventListener('status', e => {
+            const d = JSON.parse(e.data);
+            if (d.step === 2) {
+                document.getElementById('step1').className = 'step done';
+                document.getElementById('step1').innerHTML = '✅ تم جلب البيانات';
+                document.getElementById('step2').className = 'step active';
+            }
+        });
+
+        es.addEventListener('data_collected', e => {
+            const d = JSON.parse(e.data);
+            document.getElementById('step1').className = 'step done';
+            document.getElementById('step1').innerHTML = `✅ تم جلب البيانات (${d.active_sources}/${d.total_sources} مصدر، ${d.total_data_points} نقطة بيانات)`;
+        });
+
+        es.addEventListener('gap_result', e => {
+            const d = JSON.parse(e.data);
+            document.getElementById('step2').className = 'step done';
+            document.getElementById('step2').innerHTML = '✅ اكتمل التحليل';
+            renderResults(d.content);
+        });
+
+        es.addEventListener('attribution', e => {
+            const d = JSON.parse(e.data);
+            renderAttribution(d);
+        });
+
+        es.addEventListener('done', e => {
+            es.close();
+            document.getElementById('statusBar').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('analyzeBtn').disabled = false;
+        });
+
+        es.addEventListener('error', e => {
+            try {
+                const d = JSON.parse(e.data);
+                alert('خطأ: ' + d.message);
+            } catch { }
+            es.close();
+            document.getElementById('analyzeBtn').disabled = false;
+        });
+    }
+
+    function renderResults(content) {
+        let data;
+        try {
+            data = typeof content === 'string' ? JSON.parse(content) : content;
+        } catch {
+            // Try to extract JSON from string
+            const match = (typeof content === 'string' ? content : '').match(/\{[\s\S]*\}/);
+            if (match) data = JSON.parse(match[0]);
+            else { document.getElementById('recommendation').textContent = content; return; }
+        }
+
+        // Score
+        const score = data.opportunity_score || 0;
+        const ring = document.getElementById('scoreRing');
+        ring.textContent = score.toFixed(1);
+        ring.className = 'score-ring ' + (score >= 7 ? 'score-high' : score >= 5 ? 'score-mid' : 'score-low');
+        document.getElementById('assessment').textContent = data.overall_assessment || '';
+
+        // Breakdown
+        const bd = data.score_breakdown || {};
+        const labels = {
+            supply_demand_gap: '📊 فجوة العرض/الطلب',
+            growth_rate: '📈 معدل النمو',
+            government_support: '🏛️ الدعم الحكومي',
+            digital_demand: '🔍 الطلب الرقمي',
+            brokerage_opportunity: '🤝 فرصة الوساطة'
+        };
+        let bdHtml = '';
+        for (const [key, info] of Object.entries(bd)) {
+            const s = typeof info === 'object' ? info.score : info;
+            const color = s >= 7 ? 'var(--green)' : s >= 5 ? 'var(--yellow)' : 'var(--red)';
+            bdHtml += `<div class="breakdown-item"><div class="score" style="color:${color}">${s}/10</div><div class="label">${labels[key] || key}</div></div>`;
+        }
+        document.getElementById('breakdown').innerHTML = bdHtml;
+
+        // Market signals
+        const ms = data.market_signals || {};
+        let sigHtml = '';
+        const sigIcons = {search_trends: '🔍', job_market: '💼', new_registrations: '📋', gdp_contribution: '💰'};
+        const sigLabels = {search_trends: 'اتجاهات البحث', job_market: 'سوق الوظائف', new_registrations: 'التسجيلات الجديدة', gdp_contribution: 'مساهمة GDP'};
+        for (const [key, val] of Object.entries(ms)) {
+            sigHtml += `<div class="signal-card"><div class="signal-icon">${sigIcons[key] || '📊'}</div><div class="signal-value">${val}</div><div class="signal-label">${sigLabels[key] || key}</div></div>`;
+        }
+        document.getElementById('signals').innerHTML = sigHtml;
+
+        // Gaps
+        let gapHtml = '';
+        for (const g of (data.gaps || [])) {
+            const sev = g.severity || 'medium';
+            gapHtml += `<div class="gap-card ${sev}">
+                <div class="card-title">${g.gap} <span class="card-badge badge-${sev}">${sev === 'high' ? 'حرجة' : sev === 'medium' ? 'متوسطة' : 'منخفضة'}</span></div>
+                <div class="card-text">${g.evidence || ''}</div>
+                ${g.opportunity_for_broker ? `<div class="card-text" style="color:var(--green)">💡 ${g.opportunity_for_broker}</div>` : ''}
+            </div>`;
+        }
+        document.getElementById('gaps').innerHTML = gapHtml;
+
+        // Opportunities
+        let oppHtml = '';
+        for (const o of (data.opportunities || [])) {
+            const pot = o.potential || 'medium';
+            oppHtml += `<div class="opp-card ${pot}">
+                <div class="card-title">${o.opportunity} <span class="card-badge badge-green-${pot}">${pot === 'high' ? 'عالية' : pot === 'medium' ? 'متوسطة' : 'منخفضة'}</span></div>
+                <div class="card-text">${o.reasoning || ''}</div>
+                <div class="card-meta">
+                    ${o.entry_barrier ? `<span>حاجز الدخول: ${o.entry_barrier}</span>` : ''}
+                    ${o.estimated_revenue ? `<span>💰 ${o.estimated_revenue}</span>` : ''}
+                </div>
+            </div>`;
+        }
+        document.getElementById('opportunities').innerHTML = oppHtml;
+
+        // Entry points
+        let epHtml = '';
+        for (const ep of (data.brokerage_entry_points || [])) {
+            epHtml += `<div class="entry-card">
+                <div class="card-title">🎯 ${ep.model}</div>
+                <div class="card-text">${ep.target_parties || ''}</div>
+                <div class="card-meta">
+                    <span>العمولة: ${ep.commission_range || 'N/A'}</span>
+                    <span>حجم السوق: ${ep.market_size_estimate || 'N/A'}</span>
+                    <span>المنافسة: ${ep.competition_level || 'N/A'}</span>
+                </div>
+            </div>`;
+        }
+        document.getElementById('entryPoints').innerHTML = epHtml;
+
+        // Risks
+        let riskHtml = '';
+        for (const r of (data.risks || [])) {
+            riskHtml += `<li>${r}</li>`;
+        }
+        document.getElementById('risks').innerHTML = riskHtml;
+
+        // Recommendation
+        document.getElementById('recommendation').textContent = data.recommendation || '';
+    }
+
+    function renderAttribution(data) {
+        const stats = document.getElementById('attrStats');
+        stats.innerHTML = `
+            <div class="attr-stat"><div class="num">${data.active_sources || 0}</div><div class="label">مصادر نشطة</div></div>
+            <div class="attr-stat"><div class="num">${data.total_sources || 0}</div><div class="label">إجمالي المصادر</div></div>
+            <div class="attr-stat"><div class="num">${data.total_data_points || 0}</div><div class="label">نقاط البيانات</div></div>
+        `;
+    }
+    </script>
+</body>
+</html>

@@ -13,6 +13,9 @@ from .trading_economics import TradingEconomicsSource
 from .bahrain_bourse import BahrainBourseSource
 from .tamkeen import TamkeenSource
 from .edb import EDBSource
+from .datagov import DataGovSource
+from .google_trends import GoogleTrendsSource
+from .jobs import JobMarketSource
 
 logger = logging.getLogger(__name__)
 
@@ -74,33 +77,61 @@ SOURCE_META = {
         "url": "https://bahrainedb.com",
         "description_ar": "نظرة عامة اقتصادية، قطاعات التركيز، حوافز الاستثمار",
     },
+    "datagov": {
+        "name_ar": "بوابة البيانات المفتوحة",
+        "name_en": "Bahrain Open Data",
+        "icon": "\U0001f4ca",
+        "type": "api",
+        "url": "https://data.gov.bh",
+        "description_ar": "بيانات حكومية: سكان، صادرات، سياحة، تراخيص، بطالة، أجور، شحن جوي",
+    },
+    "google_trends": {
+        "name_ar": "اتجاهات البحث",
+        "name_en": "Google Trends",
+        "icon": "\U0001f50d",
+        "type": "api_optional",
+        "url": "https://trends.google.com",
+        "description_ar": "اتجاهات البحث في البحرين: مؤشر الطلب الرقمي وكلمات البحث الصاعدة",
+    },
+    "job_market": {
+        "name_ar": "سوق الوظائف",
+        "name_en": "Job Market",
+        "icon": "\U0001f4bc",
+        "type": "api_optional",
+        "url": "https://linkedin.com",
+        "description_ar": "مؤشرات التوظيف: إعلانات وظائف، شركات توظف، مسميات وظيفية",
+    },
 }
 
 # Agent-to-source mapping: which sources are primary/secondary for each agent
 AGENT_SOURCE_MAP = {
     "market": {
-        "primary": ["trading_economics", "edb", "sijilat"],
-        "secondary": ["world_bank"],
+        "primary": ["trading_economics", "edb", "sijilat", "google_trends"],
+        "secondary": ["world_bank", "datagov", "job_market"],
     },
     "financial": {
         "primary": ["cbb", "tamkeen", "world_bank"],
-        "secondary": ["bahrain_bourse"],
+        "secondary": ["bahrain_bourse", "datagov"],
     },
     "competitive": {
-        "primary": ["sijilat"],
-        "secondary": ["bahrain_bourse"],
+        "primary": ["sijilat", "job_market"],
+        "secondary": ["bahrain_bourse", "google_trends"],
     },
     "legal": {
         "primary": ["tamkeen"],
-        "secondary": ["sijilat"],
+        "secondary": ["sijilat", "datagov"],
     },
     "technical": {
-        "primary": ["world_bank"],
+        "primary": ["world_bank", "google_trends"],
         "secondary": ["tamkeen", "edb"],
     },
     "brokerage_models": {
-        "primary": ["sijilat", "edb"],
-        "secondary": [],
+        "primary": ["sijilat", "edb", "job_market"],
+        "secondary": ["google_trends", "datagov"],
+    },
+    "gap_analysis": {
+        "primary": ["trading_economics", "sijilat", "google_trends", "job_market", "datagov"],
+        "secondary": ["world_bank", "cbb", "tamkeen", "edb", "bahrain_bourse"],
     },
 }
 
@@ -117,6 +148,9 @@ class DataAggregator:
             "bahrain_bourse": BahrainBourseSource(),
             "tamkeen": TamkeenSource(),
             "edb": EDBSource(),
+            "datagov": DataGovSource(),
+            "google_trends": GoogleTrendsSource(),
+            "job_market": JobMarketSource(),
         }
         # Simple in-memory cache
         self._cache = {}
@@ -340,6 +374,19 @@ class DataAggregator:
                     opps.append(f"نمو سريع في التسجيلات ({growth_rate:.0f}% سنوياً) يشير لطلب متزايد")
                 elif growth_rate < 2:
                     opps.append(f"تباطؤ في التسجيلات الجديدة ({growth_rate:.0f}%) قد يشير لتشبع أو فرصة لتمايز")
+
+        # Google Trends signals
+        gt = data.get("google_trends", {})
+        if gt and not gt.get("error") and gt.get("trends"):
+            rising_terms = [t for t, info in gt["trends"].items() if info.get("trend") == "rising"]
+            if rising_terms:
+                opps.append(f"اهتمام رقمي متزايد: {', '.join(rising_terms[:3])}")
+
+        # Job market signals
+        jm = data.get("job_market", {})
+        if jm and not jm.get("error") and jm.get("demand_signal") == "high":
+            opps.append(f"طلب توظيف مرتفع ({jm.get('total_results', 0)} إعلان) يشير لنمو القطاع")
+
         if opps:
             parts.append("🎯 مؤشرات فرص السوق:\n" + "\n".join(f"  - {o}" for o in opps))
 
@@ -394,6 +441,9 @@ class DataAggregator:
             "bahrain_bourse": self._format_bourse,
             "tamkeen": self._format_tamkeen,
             "edb": self._format_edb,
+            "datagov": self._format_datagov,
+            "google_trends": self._format_google_trends,
+            "job_market": self._format_job_market,
         }
 
         formatter = formatters.get(source_name)
@@ -559,5 +609,81 @@ class DataAggregator:
             lines.append(f"  - {incentives.get('tax_free', '')}")
             lines.append(f"  - ضريبة القيمة المضافة: {incentives.get('vat', '')}")
             lines.append(f"  - تأسيس شركة: {incentives.get('company_setup', '')}")
+
+        return "\n".join(lines)
+
+    def _format_datagov(self, data: dict, agent_type: str) -> str:
+        datasets = data.get("datasets", {})
+        if not datasets:
+            return ""
+
+        lines = [f"── بوابة البيانات المفتوحة (موثوقية: {data.get('reliability', 0.9)}) ──"]
+
+        for key, ds in datasets.items():
+            name = ds.get("name_ar", key)
+            summary = ds.get("summary", {})
+            count = ds.get("record_count", 0)
+            lines.append(f"• {name} ({count} سجل):")
+
+            if key == "population" and summary.get("total"):
+                lines.append(f"  - إجمالي السكان: {summary['total']:,}")
+                for gov, pop in list(summary.get("by_governorate", {}).items())[:4]:
+                    lines.append(f"    {gov}: {pop:,}")
+            elif key == "unemployment" and summary.get("rate"):
+                lines.append(f"  - معدل البطالة: {summary['rate']}% ({summary.get('year', '')})")
+            elif key == "exports" and summary.get("top_exports"):
+                for exp in summary["top_exports"][:3]:
+                    lines.append(f"  - {exp['commodity']}: {exp['value_bd']} د.ب")
+            elif key == "tourism_spending" and summary.get("avg_spending"):
+                lines.append(f"  - متوسط إنفاق الزائر: {summary['avg_spending']} ({summary.get('year', '')})")
+            elif key == "gdp_quarterly" and summary.get("growth_rate"):
+                lines.append(f"  - نمو فصلي: {summary['growth_rate']}% (Q{summary.get('quarter', '')} {summary.get('year', '')})")
+            elif key == "air_cargo" and summary.get("tonnage"):
+                lines.append(f"  - حجم الشحن: {summary['tonnage']} ({summary.get('year', '')}/{summary.get('month', '')})")
+
+        return "\n".join(lines)
+
+    def _format_google_trends(self, data: dict, agent_type: str) -> str:
+        trends = data.get("trends", {})
+        if not trends and not data.get("is_live"):
+            return ""
+
+        lines = [f"── اتجاهات البحث Google Trends (موثوقية: {data.get('reliability', 0.65)}) ──"]
+
+        if trends:
+            for term, info in trends.items():
+                trend_ar = {"rising": "↗ صاعد", "declining": "↘ هابط", "stable": "→ مستقر"}.get(info["trend"], info["trend"])
+                lines.append(f"• \"{term}\": {trend_ar} (اهتمام حالي: {info['recent_interest']}/100)")
+
+        related = data.get("related_queries", {})
+        if related:
+            lines.append("• عمليات بحث صاعدة:")
+            for term, queries in list(related.items())[:2]:
+                for q in queries[:3]:
+                    lines.append(f"  - {q}")
+        elif not trends:
+            lines.append(f"• كلمات البحث المقترحة: {', '.join(data.get('search_terms', [])[:3])}")
+            lines.append("  ⚠ لم يتم جلب بيانات حية (pytrends غير متوفر)")
+
+        return "\n".join(lines)
+
+    def _format_job_market(self, data: dict, agent_type: str) -> str:
+        total = data.get("total_results", 0)
+        if total == 0 and not data.get("is_live"):
+            return ""
+
+        lines = [f"── سوق الوظائف (موثوقية: {data.get('reliability', 0.6)}) ──"]
+
+        demand = data.get("demand_signal", "unknown")
+        demand_ar = {"high": "طلب مرتفع", "medium": "طلب متوسط", "low": "طلب منخفض"}.get(demand, "غير معروف")
+        lines.append(f"• مستوى الطلب: {demand_ar} ({total} إعلان وظيفي)")
+
+        titles = data.get("sample_job_titles", [])
+        if titles:
+            lines.append(f"• مسميات وظيفية رائجة: {', '.join(titles[:5])}")
+
+        companies = data.get("hiring_companies", [])
+        if companies:
+            lines.append(f"• شركات توظف: {', '.join(companies[:5])}")
 
         return "\n".join(lines)

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المستثمر الذكي البحريني</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f172a; --card: #1e293b; --card-hover: #334155;
+            --text: #e2e8f0; --text-muted: #94a3b8; --accent: #3b82f6;
+            --green: #22c55e; --border: #334155;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        .hero { text-align: center; padding: 40px 20px; max-width: 900px; }
+        .hero h1 { font-size: 2.8em; margin-bottom: 12px; }
+        .hero h1 span { color: var(--accent); }
+        .hero p { color: var(--text-muted); font-size: 1.2em; margin-bottom: 50px; line-height: 1.6; }
+
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 40px 30px; text-decoration: none; color: var(--text); transition: all 0.3s; position: relative; overflow: hidden; }
+        .card:hover { background: var(--card-hover); transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+
+        .card-icon { font-size: 3em; margin-bottom: 20px; display: block; }
+        .card h2 { font-size: 1.5em; margin-bottom: 12px; }
+        .card p { color: var(--text-muted); line-height: 1.7; font-size: 0.95em; }
+
+        .card-badge { display: inline-block; margin-top: 20px; padding: 6px 16px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
+        .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+        .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+
+        .card::after { content: '←'; position: absolute; left: 30px; top: 50%; transform: translateY(-50%); font-size: 1.5em; color: var(--text-muted); opacity: 0; transition: all 0.3s; }
+        .card:hover::after { opacity: 1; left: 20px; }
+
+        .footer { margin-top: 60px; color: var(--text-muted); font-size: 0.85em; text-align: center; }
+
+        @media (max-width: 700px) {
+            .cards { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>المستثمر <span>الذكي</span> البحريني</h1>
+        <p>نظام تحليل ذكي يعتمد على بيانات حقيقية من 10 مصادر بحرينية ودولية، مدعوم بالذكاء الاصطناعي لمساعدة الوسطاء التجاريين ومكاتب الاستشارات</p>
+
+        <div class="cards">
+            <a href="/feasibility" class="card">
+                <span class="card-icon">📊</span>
+                <h2>دراسة جدوى مفصّلة</h2>
+                <p>تحليل شامل لقطاع محدد من 6 محاور: السوق، المالية، المنافسة، القانون، التقنية، ونماذج الوساطة. مع تقرير SWOT وخطة عمل.</p>
+                <span class="card-badge badge-blue">6 عملاء ذكاء اصطناعي</span>
+            </a>
+
+            <a href="/gaps" class="card">
+                <span class="card-icon">🔍</span>
+                <h2>كشف الفجوات والفرص</h2>
+                <p>اكتشاف فجوات السوق وفرص الوساطة التجارية في قطاع محدد، مع تقييم رقمي لحجم الفرصة ونقاط الدخول المثلى للوسيط.</p>
+                <span class="card-badge badge-green">10 مصادر بيانات حقيقية</span>
+            </a>
+        </div>
+
+        <div class="footer">
+            مملكة البحرين &bull; بيانات من data.gov.bh، البنك الدولي، Sijilat، Google Trends وأكثر
+        </div>
+    </div>
+</body>
+</html>
