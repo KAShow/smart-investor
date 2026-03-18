@@ -22,7 +22,8 @@
       "Bash(do sed:*)",
       "Bash(sed -i 's/SECTOR_MAP\\\\.get\\(sector, {}\\)/get_sector_mapping\\(sector\\)/g' \"$f\")",
       "Bash(git ls-tree:*)",
-      "Bash(git show-branch:*)"
+      "Bash(git show-branch:*)",
+      "Bash(python -c \":*)"
     ]
   }
 }
