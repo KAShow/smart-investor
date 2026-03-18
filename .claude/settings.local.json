@@ -20,7 +20,9 @@
       "Bash(\"/c/Users/Huawei/AppData/Local/Programs/Python/Python314/python.exe\" -c \":*)",
       "Bash(for f:*)",
       "Bash(do sed:*)",
-      "Bash(sed -i 's/SECTOR_MAP\\\\.get\\(sector, {}\\)/get_sector_mapping\\(sector\\)/g' \"$f\")"
+      "Bash(sed -i 's/SECTOR_MAP\\\\.get\\(sector, {}\\)/get_sector_mapping\\(sector\\)/g' \"$f\")",
+      "Bash(git ls-tree:*)",
+      "Bash(git show-branch:*)"
     ]
   }
 }
