@@ -256,6 +256,29 @@
             transform: scale(1.02);
         }
 
+        /* Markdown content styling for agent results */
+        .markdown-content { line-height: 1.7; color: #d1d5db; }
+        .markdown-content h2 { font-size: 1.15rem; font-weight: 700; color: #e2e8f0; margin: 1.2rem 0 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.4rem; }
+        .markdown-content h3 { font-size: 1rem; font-weight: 600; color: #67e8f9; margin: 1rem 0 0.4rem; }
+        .markdown-content h4 { font-size: 0.9rem; font-weight: 600; color: #a5b4fc; margin: 0.8rem 0 0.3rem; }
+        .markdown-content p { margin: 0.4rem 0; font-size: 0.875rem; }
+        .markdown-content ul, .markdown-content ol { margin: 0.3rem 0; padding-right: 1.2rem; font-size: 0.875rem; }
+        .markdown-content li { margin: 0.2rem 0; }
+        .markdown-content strong { color: #e2e8f0; }
+        .markdown-content blockquote { border-right: 3px solid #3b82f6; padding: 0.5rem 1rem 0.5rem 0; margin: 0.6rem 0; background: rgba(59,130,246,0.06); border-radius: 0 6px 6px 0; font-size: 0.875rem; }
+        .markdown-content hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0; }
+        .markdown-content table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.6rem 0; }
+        .markdown-content th { background: rgba(255,255,255,0.06); color: #94a3b8; font-weight: 600; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: right; }
+        .markdown-content td { padding: 5px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #d1d5db; }
+        .markdown-content tr:hover td { background: rgba(255,255,255,0.03); }
+        .markdown-content code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-size: 0.82rem; }
+        [data-theme="light"] .markdown-content { color: var(--text); }
+        [data-theme="light"] .markdown-content h2, [data-theme="light"] .markdown-content strong { color: #1e293b; }
+        [data-theme="light"] .markdown-content h3 { color: #0e7490; }
+        [data-theme="light"] .markdown-content blockquote { background: rgba(59,130,246,0.05); }
+        [data-theme="light"] .markdown-content th { background: rgba(0,0,0,0.04); color: #475569; }
+        [data-theme="light"] .markdown-content td { color: #334155; border-bottom-color: rgba(0,0,0,0.06); }
+
         .chat-bubble {
             animation: fadeIn 0.3s ease;
         }
@@ -1735,11 +1758,31 @@
         }
 
         // ====== Render Agent Cards ======
-        function renderAgentCard(elementId, scoreId, jsonStr) {
+        function renderAgentCard(elementId, scoreId, content) {
             const el = document.getElementById(elementId);
             const scoreEl = document.getElementById(scoreId);
+
+            // 1. Markdown path — new format with [SCORE:X]
+            if (content && content.includes('[SCORE:')) {
+                let md = content;
+                // Extract score
+                const scoreMatch = md.match(/\[SCORE:\s*(\d+(?:\.\d+)?)/);
+                if (scoreMatch) {
+                    const score = parseFloat(scoreMatch[1]);
+                    scoreEl.textContent = score;
+                    scoreEl.style.setProperty('--score', score);
+                    scoreEl.classList.remove('hidden');
+                    const agentName = elementId.replace('-result', '');
+                    agentScores[agentName] = score;
+                    md = md.replace(/\[SCORE:\s*\d+(?:\.\d+)?(?:\/10)?\s*\]/, '');
+                }
+                el.innerHTML = `<div class="markdown-content">${marked.parse(md)}</div>`;
+                return;
+            }
+
+            // 2. JSON path — backwards compat for saved analyses
             try {
-                const data = tryParseJSON(jsonStr);
+                const data = tryParseJSON(content);
                 if (!data) throw new Error('JSON parse failed');
 
                 let html = '';
@@ -1787,7 +1830,6 @@
                 }
 
                 if (data.title) html += `<h4 class="text-lg font-bold mb-2">${data.title}</h4>`;
-                // عرض الملخص فقط إذا لم تتوفر تفاصيل لتجنب التكرار
                 if (data.summary && (!data.details || data.details.length === 0)) {
                     html += `<p class="text-gray-400 mb-4 text-sm leading-relaxed">${data.summary}</p>`;
                 }
@@ -1804,7 +1846,6 @@
                     html += `<div class="mt-4 border-t border-white/10 pt-3">`;
                     html += `<div class="flex items-center gap-2 mb-2"><span class="text-xs font-bold" style="color:${confColor}">${currentLang === 'ar' ? 'مستوى الثقة' : 'Confidence'}: ${v.confidence_score}/10</span></div>`;
                     if (v.confidence_reasoning) html += `<p class="text-xs text-gray-500 mb-2">${v.confidence_reasoning}</p>`;
-                    // Collapsible details
                     const detailId = elementId + '-validation-details';
                     html += `<details class="text-xs"><summary class="cursor-pointer text-gray-500 hover:text-gray-300 transition">${currentLang === 'ar' ? 'تفاصيل التحقق' : 'Validation Details'}</summary><div class="mt-2 space-y-2">`;
                     if (v.data_sources_used && v.data_sources_used.length) {
@@ -1827,7 +1868,6 @@
                 // Extended financial analysis fields — structured tables
                 if (elementId === 'financial-result') {
                     const isAr = currentLang === 'ar';
-                    // Startup costs table
                     if (data.startup_costs && data.startup_costs.length) {
                         html += `<div class="mt-4 border-t border-white/10 pt-3">`;
                         html += `<h5 class="text-sm font-bold text-emerald-300 mb-2">${isAr ? 'التكاليف التأسيسية' : 'Startup Costs'}</h5>`;
@@ -1840,7 +1880,6 @@
                         html += `<tr class="border-t border-white/10"><td class="font-bold text-white">${isAr ? 'الإجمالي' : 'Total'}</td><td class="num font-bold text-emerald-400">${totalStartup.toLocaleString()}</td><td></td></tr>`;
                         html += `</tbody></table></div>`;
                     }
-                    // Operating costs table
                     if (data.operating_costs && data.operating_costs.length) {
                         html += `<div class="mt-3">`;
                         html += `<h5 class="text-sm font-bold text-emerald-300 mb-2">${isAr ? 'التكاليف التشغيلية' : 'Operating Costs'}</h5>`;
@@ -1854,7 +1893,6 @@
                         html += `<tr class="border-t border-white/10"><td class="font-bold text-white">${isAr ? 'الإجمالي' : 'Total'}</td><td class="num font-bold text-emerald-400">${totalMonthly.toLocaleString()}</td><td class="num font-bold text-emerald-400">${totalAnnual.toLocaleString()}</td></tr>`;
                         html += `</tbody></table></div>`;
                     }
-                    // Profitability scenarios table
                     if (data.profitability && data.profitability.length) {
                         html += `<div class="mt-3">`;
                         html += `<h5 class="text-sm font-bold text-emerald-300 mb-2">${isAr ? 'سيناريوهات الربحية' : 'Profitability Scenarios'}</h5>`;
@@ -1864,7 +1902,6 @@
                         });
                         html += `</tbody></table></div>`;
                     }
-                    // Breakeven info
                     if (data.breakeven) {
                         const be = data.breakeven;
                         html += `<div class="mt-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">`;
@@ -1880,7 +1917,6 @@
                 }
                 // Extended competitive analysis fields
                 if (elementId === 'competitive-result') {
-                    // Competitors table
                     if (data.competitors_table && data.competitors_table.length) {
                         html += `<div class="mt-4 border-t border-white/10 pt-3">`;
                         html += `<h5 class="text-sm font-bold text-violet-300 mb-2">${currentLang === 'ar' ? 'جدول المنافسين الرئيسيين' : 'Key Competitors'}</h5>`;
@@ -1904,7 +1940,6 @@
                         });
                         html += `</tbody></table></div></div>`;
                     }
-                    // Market stats
                     if (data.market_stats) {
                         const ms = data.market_stats;
                         html += `<div class="mt-3 grid grid-cols-3 gap-2">`;
@@ -1913,7 +1948,6 @@
                         if (ms.churn_rate) html += `<div class="bg-white/5 rounded-lg p-2 text-center"><div class="text-lg font-bold text-amber-400">${ms.churn_rate}</div><div class="text-[10px] text-gray-500">${currentLang === 'ar' ? 'معدل الدوران' : 'Churn Rate'}</div></div>`;
                         html += `</div>`;
                     }
-                    // Underserved gap
                     if (data.underserved_gap) {
                         html += `<div class="mt-3 p-3 bg-violet-500/10 rounded-lg border border-violet-500/20">`;
                         html += `<p class="text-xs text-violet-300 font-bold mb-1">${currentLang === 'ar' ? 'الفجوة غير المخدومة' : 'Underserved Gap'}</p>`;
@@ -1930,24 +1964,8 @@
                     agentScores[agentName] = data.score;
                 }
             } catch {
-                // Smart fallback: split raw text into readable sections
-                let raw = jsonStr.trim();
-                // Remove JSON wrapper artifacts
-                raw = raw.replace(/^\s*\{?\s*"title"\s*:\s*/, '').replace(/\}\s*$/, '');
-                const sections = raw.split(/"(?:summary|details|recommendation|title|score|validation)"\s*:\s*/);
-                if (sections.length > 1) {
-                    let fallbackHtml = '<div class="space-y-4">';
-                    sections.forEach(s => {
-                        s = s.replace(/^["'\[,\s]+|["'\],\s]+$/g, '').replace(/",?\s*$/, '').trim();
-                        if (s.length > 10) {
-                            fallbackHtml += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><p class="text-gray-300 leading-relaxed text-sm">${s}</p></div>`;
-                        }
-                    });
-                    fallbackHtml += '</div>';
-                    el.innerHTML = fallbackHtml;
-                } else {
-                    el.innerHTML = `<div class="markdown-content">${marked.parse(jsonStr)}</div>`;
-                }
+                // 3. Final fallback — render as markdown
+                el.innerHTML = `<div class="markdown-content">${marked.parse(content)}</div>`;
             }
         }
 
@@ -2140,15 +2158,32 @@
             });
         }
 
-        function renderBrokerageModels(jsonStr) {
+        function renderBrokerageModels(content) {
             const el = document.getElementById('brokerage-result');
             const scoreEl = document.getElementById('brokerage-score');
+
+            // 1. Markdown path — new format with [SCORE:X]
+            if (content && content.includes('[SCORE:')) {
+                let md = content;
+                const scoreMatch = md.match(/\[SCORE:\s*(\d+(?:\.\d+)?)/);
+                if (scoreMatch) {
+                    const score = parseFloat(scoreMatch[1]);
+                    scoreEl.textContent = score;
+                    scoreEl.style.setProperty('--score', score);
+                    scoreEl.classList.remove('hidden');
+                    agentScores['brokerage'] = score;
+                    md = md.replace(/\[SCORE:\s*\d+(?:\.\d+)?(?:\/10)?\s*\]/, '');
+                }
+                el.innerHTML = `<div class="markdown-content">${marked.parse(md)}</div>`;
+                return;
+            }
+
+            // 2. JSON path — backwards compat for saved analyses
             try {
-                const data = tryParseJSON(jsonStr);
+                const data = tryParseJSON(content);
                 if (!data) throw new Error('JSON parse failed');
                 let html = '';
 
-                // Fallback for non-standard schema
                 if (!data.title && !data.summary && !data.recommendation && !data.score && (!data.models || data.models.length === 0) && Object.keys(data).length > 0) {
                     html += `<div class="space-y-5 mb-4 text-sm text-gray-300">`;
                     for (const [k, v] of Object.entries(data)) {
@@ -2215,20 +2250,8 @@
                     agentScores['brokerage'] = data.score;
                 }
             } catch {
-                let raw = jsonStr.trim();
-                raw = raw.replace(/^\s*\{?\s*"title"\s*:\s*/, '').replace(/\}\s*$/, '');
-                const sections = raw.split(/"(?:summary|details|recommendation|title|score|models|validation)"\s*:\s*/);
-                if (sections.length > 1) {
-                    let fallbackHtml = '<div class="space-y-4">';
-                    sections.forEach(s => {
-                        s = s.replace(/^["'\[,\s]+|["'\],\s]+$/g, '').replace(/",?\s*$/, '').trim();
-                        if (s.length > 10) fallbackHtml += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><p class="text-gray-300 leading-relaxed text-sm">${s}</p></div>`;
-                    });
-                    fallbackHtml += '</div>';
-                    el.innerHTML = fallbackHtml;
-                } else {
-                    el.innerHTML = `<div class="markdown-content">${marked.parse(jsonStr)}</div>`;
-                }
+                // 3. Final fallback — render as markdown
+                el.innerHTML = `<div class="markdown-content">${marked.parse(content)}</div>`;
             }
         }
 

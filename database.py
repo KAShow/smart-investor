@@ -261,3 +261,39 @@ def has_bahrain_data():
     count = conn.execute("SELECT COUNT(*) as c FROM bahrain_data_cache").fetchone()['c']
     conn.close()
     return count > 0
+
+
+# ─── دوال كاش مصادر البيانات (data_cache) ───
+
+def save_data_cache(source_name, sector, data_dict, ttl_seconds):
+    """حفظ نتيجة مصدر بيانات في الكاش مع TTL."""
+    from datetime import datetime, timedelta
+    cache_key = f"{source_name}:{sector}"
+    expires_at = (datetime.now() + timedelta(seconds=ttl_seconds)).strftime('%Y-%m-%d %H:%M:%S')
+    conn = get_connection()
+    conn.execute("""
+        INSERT OR REPLACE INTO data_cache
+        (source_name, sector, cache_key, data_json, fetched_at, expires_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+    """, (source_name, sector, cache_key, json.dumps(data_dict, ensure_ascii=False), expires_at))
+    conn.commit()
+    conn.close()
+
+
+def get_data_cache(source_name, sector):
+    """جلب نتيجة مصدر من الكاش إذا لم تنتهِ صلاحيتها. يُرجع dict أو None."""
+    from datetime import datetime
+    cache_key = f"{source_name}:{sector}"
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT data_json FROM data_cache WHERE cache_key = ? AND expires_at > ?",
+        (cache_key, now)
+    ).fetchone()
+    conn.close()
+    if row and row['data_json']:
+        try:
+            return json.loads(row['data_json'])
+        except (json.JSONDecodeError, TypeError):
+            return None
+    return None

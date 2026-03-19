@@ -51,7 +51,12 @@ import re
 
 
 def _extract_json(text: str) -> str:
-    """Extract JSON from text that may be wrapped in markdown code blocks."""
+    """Extract JSON from text that may be wrapped in markdown code blocks.
+    Skip extraction if content looks like Markdown (starts with [SCORE:)."""
+    stripped = text.strip()
+    # Don't extract from Markdown responses — return as-is
+    if stripped.startswith('[SCORE:'):
+        return stripped
     # Try to extract from ```json ... ``` or ``` ... ```
     match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text)
     if match:
@@ -60,7 +65,7 @@ def _extract_json(text: str) -> str:
     match = re.search(r'(\{[\s\S]*\})', text)
     if match:
         return match.group(1).strip()
-    return text.strip()
+    return stripped
 
 
 async def create_completion(provider: str, model: str, api_key: str, messages: list, max_tokens: int = 4000, temperature: float = 0.2):
@@ -176,6 +181,14 @@ class BaseAgent:
             content = await create_completion(provider, model, api_key, messages)
             logger.info(f"✅ {agent_name}: استلم محتوى | طول={len(content) if content else 0}")
 
+            # Markdown response — return as-is
+            if content and '[SCORE:' in content:
+                score_match = re.search(r'\[SCORE:\s*(\d+(?:\.\d+)?)', content)
+                if score_match:
+                    logger.info(f"📊 {agent_name}: score={score_match.group(1)} (markdown)")
+                return content
+
+            # JSON response — backwards compatibility
             try:
                 parsed = json.loads(content)
                 logger.info(f"✅ {agent_name}: JSON صالح | مفاتيح: {list(parsed.keys()) if isinstance(parsed, dict) else 'ليس dict'}")
@@ -185,7 +198,8 @@ class BaseAgent:
             except json.JSONDecodeError as e:
                 logger.warning(f"⚠️ {agent_name}: JSON غير صالح: {e}")
                 logger.warning(f"⚠️ المحتوى الخام: {content[:300]}")
-                return json.dumps({"title": "تحليل", "summary": content, "details": [], "score": 0, "recommendation": "", "validation": {"confidence_score": 1, "confidence_reasoning": "JSON غير صالح من المزود", "data_sources_used": [], "assumptions": ["التحليل مبني على نص خام غير منسق"], "data_gaps": ["جميع البيانات المهيكلة"]}}, ensure_ascii=False)
+                # Return raw content as-is — frontend will render as markdown fallback
+                return content
 
         except Exception as e:
             logger.error(f"❌ {agent_name}: فشل التحليل: {type(e).__name__}: {e}")
