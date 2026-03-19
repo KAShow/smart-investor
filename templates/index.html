@@ -230,6 +230,14 @@
         .agent-table tr:hover td { background: rgba(255,255,255,0.03); }
         .agent-table .num { font-family: 'Courier New', monospace; font-weight: 600; color: #67e8f9; direction: ltr; }
 
+        /* Agent tab icons */
+        .agent-tab { cursor: pointer; outline: none; }
+        .agent-tab.active { transform: scale(1.05); box-shadow: 0 0 20px rgba(var(--tab-glow), 0.15); }
+        .agent-tab:hover { transform: scale(1.03); }
+        .agent-tab .score-ring { border: none; }
+        #agent-panel-body > div { animation: fadeSlideIn 0.3s ease-out; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
         .tab-btn {
             transition: all 0.2s;
         }
@@ -622,10 +630,9 @@
                 <div>
                     <label class="block text-sm text-gray-400 mb-2 text-right" data-ar="المزود المدعوم"
                         data-en="Supported Provider">المزود المدعوم</label>
-                    <select id="ob-provider" disabled
-                        class="w-full bg-black/30 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-neonBlue transition opacity-70">
-                        <option value="perplexity">Perplexity AI</option>
-                    </select>
+                    <div class="w-full bg-black/30 border border-neonBlue/30 text-neonBlue rounded-xl px-4 py-3 flex items-center gap-2">
+                        <span>🔮</span> Perplexity AI
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-400 mb-2 text-right" data-ar="مفتاح API"
@@ -749,13 +756,16 @@
                                 class="block text-sm font-medium text-gray-400 mb-2 transition group-hover:text-neonBlue"
                                 data-ar="مزود الذكاء الاصطناعي" data-en="AI Provider">مزود الذكاء الاصطناعي</label>
                             <div class="grid grid-cols-2 gap-3">
-                                <select id="provider-select" disabled
-                                    class="bg-black/30 border border-gray-700 text-white rounded-xl px-4 py-4 focus:outline-none focus:border-neonBlue transition-all opacity-70">
-                                    <option value="perplexity">Perplexity AI</option>
-                                </select>
+                                <div class="bg-black/30 border border-neonBlue/30 text-neonBlue rounded-xl px-4 py-4 flex items-center gap-2">
+                                    <span>🔮</span> Perplexity AI
+                                </div>
+                                <select id="provider-select" style="display:none"><option value="perplexity" selected>Perplexity AI</option></select>
                                 <select id="model-select"
                                     class="bg-black/30 border border-gray-700 text-white rounded-xl px-4 py-4 focus:outline-none focus:border-neonBlue transition-all">
                                     <option value="">تلقائي</option>
+                                    <option value="sonar-pro">sonar-pro</option>
+                                    <option value="sonar">sonar</option>
+                                    <option value="sonar-reasoning-pro">sonar-reasoning-pro</option>
                                 </select>
                             </div>
                         </div>
@@ -866,7 +876,7 @@
                 <div id="report-info-banner" class="hidden bg-gradient-to-r from-cyan-900/20 via-blue-900/20 to-cyan-900/20 border border-cyan-500/20 rounded-2xl px-6 py-4 text-center backdrop-blur-md">
                 </div>
 
-                <!-- Layer 1: Divergence - 5 Agents -->
+                <!-- Layer 1: Divergence - 6 Agents (Tab UI) -->
                 <section>
                     <div class="flex items-center space-x-4 mb-8 space-x-reverse">
                         <div class="h-px flex-1 bg-gradient-to-l from-transparent to-gray-700"></div>
@@ -875,130 +885,76 @@
                         <div class="h-px flex-1 bg-gradient-to-r from-transparent to-gray-700"></div>
                     </div>
 
-                    <div class="grid md:grid-cols-3 gap-6 mb-6">
-                        <!-- Market -->
-                        <div class="result-card group" style="--accent: #3b82f6">
-                            <div
-                                class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden h-full transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)]">
-                                <div
-                                    class="p-6 border-b border-white/5 bg-gradient-to-b from-blue-500/10 to-transparent">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-xl font-bold text-blue-400" data-ar="منطق السوق"
-                                            data-en="Market Logic">منطق السوق</h3>
-                                        <div class="flex items-center gap-2">
-                                            <div id="market-spinner" class="card-spinner text-blue-400 hidden"></div>
-                                            <div id="market-score" class="hidden score-ring text-blue-400"
-                                                style="--ring-color: #3b82f6;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-6 text-gray-300 leading-relaxed" id="market-result"></div>
-                            </div>
-                        </div>
-
-                        <!-- Financial -->
-                        <div class="result-card group" style="--accent: #10b981">
-                            <div
-                                class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden h-full transition-all duration-300 hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-                                <div
-                                    class="p-6 border-b border-white/5 bg-gradient-to-b from-emerald-500/10 to-transparent">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-xl font-bold text-emerald-400" data-ar="الاستدامة المالية"
-                                            data-en="Financials">الاستدامة المالية</h3>
-                                        <div class="flex items-center gap-2">
-                                            <div id="financial-spinner" class="card-spinner text-emerald-400 hidden">
-                                            </div>
-                                            <div id="financial-score" class="hidden score-ring text-emerald-400"
-                                                style="--ring-color: #10b981;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-6 text-gray-300 leading-relaxed" id="financial-result"></div>
-                            </div>
-                        </div>
-
-                        <!-- Competitive -->
-                        <div class="result-card group" style="--accent: #8b5cf6">
-                            <div
-                                class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden h-full transition-all duration-300 hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.15)]">
-                                <div
-                                    class="p-6 border-b border-white/5 bg-gradient-to-b from-violet-500/10 to-transparent">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-xl font-bold text-violet-400" data-ar="المتانة التنافسية"
-                                            data-en="Competitive">المتانة التنافسية</h3>
-                                        <div class="flex items-center gap-2">
-                                            <div id="competitive-spinner" class="card-spinner text-violet-400 hidden">
-                                            </div>
-                                            <div id="competitive-score" class="hidden score-ring text-violet-400"
-                                                style="--ring-color: #8b5cf6;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-6 text-gray-300 leading-relaxed" id="competitive-result"></div>
-                            </div>
-                        </div>
+                    <!-- Agent Icon Tabs -->
+                    <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6" id="agent-tabs">
+                        <button onclick="switchAgentTab('market')"
+                            class="agent-tab active group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-blue-500/40 bg-blue-500/10 transition-all duration-300 hover:border-blue-400 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)]"
+                            data-agent="market" data-color="#3b82f6">
+                            <span class="text-3xl">📈</span>
+                            <span class="text-xs font-bold text-blue-400" data-ar="منطق السوق" data-en="Market">منطق السوق</span>
+                            <div id="market-spinner" class="card-spinner text-blue-400 hidden absolute top-2 left-2" style="width:16px;height:16px;"></div>
+                            <div id="market-score" class="hidden score-ring text-blue-400 absolute -top-2 -right-2" style="--ring-color: #3b82f6; width:32px; height:32px; font-size:11px;"></div>
+                        </button>
+                        <button onclick="switchAgentTab('financial')"
+                            class="agent-tab group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-white/10 bg-white/5 transition-all duration-300 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)]"
+                            data-agent="financial" data-color="#10b981">
+                            <span class="text-3xl">💰</span>
+                            <span class="text-xs font-bold text-gray-400 group-hover:text-emerald-400 transition" data-ar="الاستدامة المالية" data-en="Financial">الاستدامة المالية</span>
+                            <div id="financial-spinner" class="card-spinner text-emerald-400 hidden absolute top-2 left-2" style="width:16px;height:16px;"></div>
+                            <div id="financial-score" class="hidden score-ring text-emerald-400 absolute -top-2 -right-2" style="--ring-color: #10b981; width:32px; height:32px; font-size:11px;"></div>
+                        </button>
+                        <button onclick="switchAgentTab('competitive')"
+                            class="agent-tab group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-white/10 bg-white/5 transition-all duration-300 hover:border-violet-400 hover:shadow-[0_0_25px_rgba(139,92,246,0.2)]"
+                            data-agent="competitive" data-color="#8b5cf6">
+                            <span class="text-3xl">⚔️</span>
+                            <span class="text-xs font-bold text-gray-400 group-hover:text-violet-400 transition" data-ar="المتانة التنافسية" data-en="Competitive">المتانة التنافسية</span>
+                            <div id="competitive-spinner" class="card-spinner text-violet-400 hidden absolute top-2 left-2" style="width:16px;height:16px;"></div>
+                            <div id="competitive-score" class="hidden score-ring text-violet-400 absolute -top-2 -right-2" style="--ring-color: #8b5cf6; width:32px; height:32px; font-size:11px;"></div>
+                        </button>
+                        <button onclick="switchAgentTab('legal')"
+                            class="agent-tab group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-white/10 bg-white/5 transition-all duration-300 hover:border-amber-400 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)]"
+                            data-agent="legal" data-color="#f59e0b">
+                            <span class="text-3xl">⚖️</span>
+                            <span class="text-xs font-bold text-gray-400 group-hover:text-amber-400 transition" data-ar="التحليل القانوني" data-en="Legal">التحليل القانوني</span>
+                            <div id="legal-spinner" class="card-spinner text-amber-400 hidden absolute top-2 left-2" style="width:16px;height:16px;"></div>
+                            <div id="legal-score" class="hidden score-ring text-amber-400 absolute -top-2 -right-2" style="--ring-color: #f59e0b; width:32px; height:32px; font-size:11px;"></div>
+                        </button>
+                        <button onclick="switchAgentTab('technical')"
+                            class="agent-tab group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-white/10 bg-white/5 transition-all duration-300 hover:border-cyan-400 hover:shadow-[0_0_25px_rgba(6,182,212,0.2)]"
+                            data-agent="technical" data-color="#06b6d4">
+                            <span class="text-3xl">🔧</span>
+                            <span class="text-xs font-bold text-gray-400 group-hover:text-cyan-400 transition" data-ar="الجدوى التقنية" data-en="Technical">الجدوى التقنية</span>
+                            <div id="technical-spinner" class="card-spinner text-cyan-400 hidden absolute top-2 left-2" style="width:16px;height:16px;"></div>
+                            <div id="technical-score" class="hidden score-ring text-cyan-400 absolute -top-2 -right-2" style="--ring-color: #06b6d4; width:32px; height:32px; font-size:11px;"></div>
+                        </button>
+                        <button onclick="switchAgentTab('brokerage')"
+                            class="agent-tab group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-white/10 bg-white/5 transition-all duration-300 hover:border-pink-400 hover:shadow-[0_0_25px_rgba(236,72,153,0.2)]"
+                            data-agent="brokerage" data-color="#ec4899">
+                            <span class="text-3xl">🤝</span>
+                            <span class="text-xs font-bold text-gray-400 group-hover:text-pink-400 transition" data-ar="نماذج الوساطة" data-en="Brokerage">نماذج الوساطة</span>
+                            <div id="brokerage-spinner" class="card-spinner text-pink-400 hidden absolute top-2 left-2" style="width:16px;height:16px;"></div>
+                            <div id="brokerage-score" class="hidden score-ring text-pink-400 absolute -top-2 -right-2" style="--ring-color: #ec4899; width:32px; height:32px; font-size:11px;"></div>
+                        </button>
                     </div>
 
-                    <!-- New Row: Legal + Technical + Brokerage Models -->
-                    <div class="grid md:grid-cols-3 gap-6">
-                        <!-- Legal -->
-                        <div class="result-card group" style="--accent: #f59e0b">
-                            <div
-                                class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden h-full transition-all duration-300 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]">
-                                <div
-                                    class="p-6 border-b border-white/5 bg-gradient-to-b from-amber-500/10 to-transparent">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-xl font-bold text-amber-400" data-ar="التحليل القانوني"
-                                            data-en="Legal & Regulatory">التحليل القانوني</h3>
-                                        <div class="flex items-center gap-2">
-                                            <div id="legal-spinner" class="card-spinner text-amber-400 hidden"></div>
-                                            <div id="legal-score" class="hidden score-ring text-amber-400"
-                                                style="--ring-color: #f59e0b;"></div>
-                                        </div>
-                                    </div>
+                    <!-- Agent Content Panel -->
+                    <div class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden transition-all duration-300" id="agent-content-panel">
+                        <div id="agent-panel-header" class="p-6 border-b border-white/5 bg-gradient-to-b from-blue-500/10 to-transparent">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl" id="agent-panel-icon">📈</span>
+                                    <h3 class="text-xl font-bold" id="agent-panel-title" style="color: #3b82f6">منطق السوق</h3>
                                 </div>
-                                <div class="p-6 text-gray-300 leading-relaxed" id="legal-result"></div>
+                                <div id="agent-panel-score" class="hidden score-ring" style="--ring-color: #3b82f6;"></div>
                             </div>
                         </div>
-
-                        <!-- Technical -->
-                        <div class="result-card group" style="--accent: #06b6d4">
-                            <div
-                                class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden h-full transition-all duration-300 hover:border-cyan-500/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-                                <div
-                                    class="p-6 border-b border-white/5 bg-gradient-to-b from-cyan-500/10 to-transparent">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-xl font-bold text-cyan-400" data-ar="الجدوى التقنية"
-                                            data-en="Technical Feasibility">الجدوى التقنية</h3>
-                                        <div class="flex items-center gap-2">
-                                            <div id="technical-spinner" class="card-spinner text-cyan-400 hidden"></div>
-                                            <div id="technical-score" class="hidden score-ring text-cyan-400"
-                                                style="--ring-color: #06b6d4;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-6 text-gray-300 leading-relaxed" id="technical-result"></div>
-                            </div>
-                        </div>
-
-                        <!-- Brokerage Models -->
-                        <div class="result-card group" style="--accent: #ec4899">
-                            <div
-                                class="bg-glass backdrop-blur-md border border-glassBorder rounded-2xl overflow-hidden h-full transition-all duration-300 hover:border-pink-500/50 hover:shadow-[0_0_30px_rgba(236,72,153,0.15)]">
-                                <div
-                                    class="p-6 border-b border-white/5 bg-gradient-to-b from-pink-500/10 to-transparent">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-xl font-bold text-pink-400" data-ar="مقارنة نماذج الوساطة"
-                                            data-en="Brokerage Models">مقارنة نماذج الوساطة</h3>
-                                        <div class="flex items-center gap-2">
-                                            <div id="brokerage-spinner" class="card-spinner text-pink-400 hidden"></div>
-                                            <div id="brokerage-score" class="hidden score-ring text-pink-400"
-                                                style="--ring-color: #ec4899;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-6 text-gray-300 leading-relaxed" id="brokerage-result"></div>
-                            </div>
+                        <div class="p-6 text-gray-300 leading-relaxed min-h-[200px] max-h-[70vh] overflow-y-auto" id="agent-panel-body">
+                            <div id="market-result"></div>
+                            <div id="financial-result" class="hidden"></div>
+                            <div id="competitive-result" class="hidden"></div>
+                            <div id="legal-result" class="hidden"></div>
+                            <div id="technical-result" class="hidden"></div>
+                            <div id="brokerage-result" class="hidden"></div>
                         </div>
                     </div>
                 </section>
@@ -1552,31 +1508,71 @@
 
         marked.setOptions({ breaks: true, gfm: true, headerIds: false });
 
-        // ====== Provider/Model ======
-        const modelOptions = {
-            perplexity: ['', 'sonar-pro', 'sonar', 'sonar-reasoning', 'sonar-reasoning-pro']
-        };
+        // ====== Provider: Perplexity only ======
+        if (apiKeyInput) apiKeyInput.placeholder = 'pplx-...';
 
-        const apiKeyPlaceholders = {
-            perplexity: 'pplx-...'
+        // ====== Agent Tab Switching ======
+        const agentTabMeta = {
+            market:      { icon: '📈', ar: 'منطق السوق',         en: 'Market Logic',     color: '#3b82f6', gradient: 'from-blue-500/10' },
+            financial:   { icon: '💰', ar: 'الاستدامة المالية',    en: 'Financials',       color: '#10b981', gradient: 'from-emerald-500/10' },
+            competitive: { icon: '⚔️', ar: 'المتانة التنافسية',   en: 'Competitive',      color: '#8b5cf6', gradient: 'from-violet-500/10' },
+            legal:       { icon: '⚖️', ar: 'التحليل القانوني',    en: 'Legal',            color: '#f59e0b', gradient: 'from-amber-500/10' },
+            technical:   { icon: '🔧', ar: 'الجدوى التقنية',      en: 'Technical',        color: '#06b6d4', gradient: 'from-cyan-500/10' },
+            brokerage:   { icon: '🤝', ar: 'نماذج الوساطة',       en: 'Brokerage Models', color: '#ec4899', gradient: 'from-pink-500/10' },
         };
+        let activeAgentTab = 'market';
 
-        providerSelect.addEventListener('change', () => {
-            const p = providerSelect.value;
-            modelSelect.innerHTML = '';
-            (modelOptions[p] || ['']).forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m || (currentLang === 'ar' ? 'تلقائي' : 'Auto');
-                modelSelect.appendChild(opt);
+        function switchAgentTab(agent) {
+            activeAgentTab = agent;
+            const meta = agentTabMeta[agent];
+
+            // Update tab buttons
+            document.querySelectorAll('#agent-tabs .agent-tab').forEach(btn => {
+                const a = btn.dataset.agent;
+                const m = agentTabMeta[a];
+                const isActive = a === agent;
+                btn.className = `agent-tab ${isActive ? 'active' : ''} group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-300`;
+                if (isActive) {
+                    btn.style.borderColor = m.color + '66';
+                    btn.style.backgroundColor = m.color + '1a';
+                    btn.querySelector('span:nth-child(2)').style.color = m.color;
+                } else {
+                    btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                    btn.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                    btn.querySelector('span:nth-child(2)').style.color = '';
+                }
             });
-            // تحديث placeholder مفتاح API
-            const apiKeyInput = document.getElementById('api-key');
-            if (apiKeyInput) {
-                apiKeyInput.placeholder = apiKeyPlaceholders[p] || 'sk-...';
+
+            // Update panel header
+            document.getElementById('agent-panel-icon').textContent = meta.icon;
+            const titleEl = document.getElementById('agent-panel-title');
+            titleEl.textContent = currentLang === 'ar' ? meta.ar : meta.en;
+            titleEl.style.color = meta.color;
+            const header = document.getElementById('agent-panel-header');
+            header.className = `p-6 border-b border-white/5 bg-gradient-to-b ${meta.gradient} to-transparent`;
+
+            // Update panel score
+            const panelScore = document.getElementById('agent-panel-score');
+            const realScore = document.getElementById(agent + '-score');
+            if (realScore && !realScore.classList.contains('hidden')) {
+                panelScore.textContent = realScore.textContent;
+                panelScore.style.setProperty('--score', realScore.style.getPropertyValue('--score'));
+                panelScore.style.setProperty('--ring-color', meta.color);
+                panelScore.classList.remove('hidden');
+            } else {
+                panelScore.classList.add('hidden');
             }
-        });
-        providerSelect.dispatchEvent(new Event('change'));
+
+            // Show/hide content panels
+            const panels = ['market', 'financial', 'competitive', 'legal', 'technical', 'brokerage'];
+            panels.forEach(p => {
+                const el = document.getElementById(p + '-result');
+                if (el) el.classList.toggle('hidden', p !== agent);
+            });
+
+            // Update panel border color
+            document.getElementById('agent-content-panel').style.borderColor = meta.color + '33';
+        }
 
         // ====== Theme ======
         function toggleTheme() {
@@ -1654,6 +1650,7 @@
                 currentShareToken = data.share_token || '';
                 chatHistory = [];
                 document.getElementById('chat-messages').innerHTML = '';
+                loadChatFromStorage();
                 displayResults(data.market_analysis, data.financial_analysis, data.competitive_analysis, data.final_verdict, data.legal_analysis, data.technical_analysis, data.swot_analysis, data.action_plan, data.brokerage_models_analysis);
                 resultsEl.classList.remove('hidden');
                 document.getElementById('result-actions').classList.remove('hidden');
@@ -1687,30 +1684,103 @@
             fetch(`/history/${id}`, { method: 'DELETE' }).then(r => r.json()).then(() => loadHistory());
         }
 
+        // ====== JSON Repair Helper ======
+        function tryParseJSON(raw) {
+            let s = raw.trim();
+            // 1. Extract from code blocks
+            const cb = s.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (cb) s = cb[1].trim();
+            // 2. Extract JSON object
+            const m = s.match(/\{[\s\S]*\}/);
+            if (m) s = m[0];
+            // 3. Try direct parse
+            try { return JSON.parse(s); } catch {}
+            // 4. Fix trailing commas
+            let fixed = s.replace(/,\s*([}\]])/g, '$1');
+            try { return JSON.parse(fixed); } catch {}
+            // 5. Fix truncated JSON (close open braces/brackets)
+            let openB = 0, openA = 0;
+            for (const c of fixed) { if (c === '{') openB++; if (c === '}') openB--; if (c === '[') openA++; if (c === ']') openA--; }
+            if (openA > 0) fixed += ']'.repeat(openA);
+            if (openB > 0) {
+                // Try to cleanly close - remove trailing partial key/value
+                fixed = fixed.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '');
+                fixed += '}'.repeat(openB);
+            }
+            fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+            try { return JSON.parse(fixed); } catch {}
+            // 6. Extract fields via regex as last resort
+            const title = raw.match(/"title"\s*:\s*"([^"]+)"/);
+            const summary = raw.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            const score = raw.match(/"score"\s*:\s*(\d+(?:\.\d+)?)/);
+            const details = raw.match(/"details"\s*:\s*\[([\s\S]*?)\]/);
+            const recommendation = raw.match(/"recommendation"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            if (title || summary) {
+                const obj = {};
+                if (title) obj.title = title[1];
+                if (summary) obj.summary = summary[1];
+                if (score) obj.score = parseFloat(score[1]);
+                if (recommendation) obj.recommendation = recommendation[1];
+                if (details) {
+                    try {
+                        obj.details = JSON.parse('[' + details[1] + ']');
+                    } catch {
+                        const items = details[1].match(/"((?:[^"\\]|\\.)*)"/g);
+                        if (items) obj.details = items.map(i => i.slice(1, -1));
+                    }
+                }
+                return obj;
+            }
+            return null;
+        }
+
         // ====== Render Agent Cards ======
         function renderAgentCard(elementId, scoreId, jsonStr) {
             const el = document.getElementById(elementId);
             const scoreEl = document.getElementById(scoreId);
             try {
-                let cleanJsonStr = jsonStr.trim();
-                const match = cleanJsonStr.match(/\{[\s\S]*\}/);
-                if (match) cleanJsonStr = match[0];
-                const data = JSON.parse(cleanJsonStr);
-                
+                const data = tryParseJSON(jsonStr);
+                if (!data) throw new Error('JSON parse failed');
+
                 let html = '';
-                
+
                 // Fallback for non-standard JSON schema format
                 if (!data.title && !data.summary && !data.recommendation && !data.score && !data.details && Object.keys(data).length > 0) {
-                    html += `<div class="space-y-4 mb-4 text-sm text-gray-300 w-full overflow-hidden">`;
+                    html += `<div class="space-y-5 mb-4 text-sm text-gray-300 w-full overflow-hidden">`;
                     for (const [k, v] of Object.entries(data)) {
                         if (['validation', 'startup_costs', 'operating_costs', 'profitability', 'breakeven', 'competitors_table', 'market_stats', 'underserved_gap'].includes(k)) continue;
-                        html += `<div><span class="font-bold text-neonBlue text-base">${k.replace(/_/g, ' ')}:</span> `;
+                        const label = k.replace(/_/g, ' ');
                         if (typeof v === 'string' || typeof v === 'number') {
-                            html += `<div class="mt-1 leading-relaxed">${v}</div></div>`;
+                            html += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><h5 class="font-bold text-neonBlue text-sm mb-2">${label}</h5><div class="leading-relaxed text-gray-300">${v}</div></div>`;
                         } else if (Array.isArray(v)) {
-                            html += `<ul class="list-disc list-inside mt-2 space-y-1">` + v.map(item => `<li>${typeof item === 'object' ? JSON.stringify(item) : item}</li>`).join('') + `</ul></div>`;
-                        } else {
-                            html += `<div class="mt-2 bg-black/10 p-3 rounded-xl border border-white/5 overflow-x-auto text-left" dir="ltr"><pre class="text-xs text-emerald-400 whitespace-pre-wrap">${JSON.stringify(v, null, 2)}</pre></div></div>`;
+                            html += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><h5 class="font-bold text-neonBlue text-sm mb-2">${label}</h5>`;
+                            html += `<ul class="space-y-2">` + v.map(item => {
+                                if (typeof item === 'object' && item !== null) {
+                                    let itemHtml = '<li class="bg-white/[0.02] rounded-lg p-3 border border-white/5 space-y-1">';
+                                    for (const [ik, iv] of Object.entries(item)) {
+                                        itemHtml += `<div><span class="text-gray-500 text-xs">${ik.replace(/_/g, ' ')}:</span> <span class="text-gray-200">${Array.isArray(iv) ? iv.join('، ') : iv}</span></div>`;
+                                    }
+                                    return itemHtml + '</li>';
+                                }
+                                return `<li class="flex items-start gap-2"><span class="text-neonBlue mt-0.5">&#9679;</span><span>${item}</span></li>`;
+                            }).join('') + `</ul></div>`;
+                        } else if (typeof v === 'object' && v !== null) {
+                            html += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><h5 class="font-bold text-neonBlue text-sm mb-3">${label}</h5>`;
+                            html += `<div class="space-y-2">`;
+                            for (const [sk, sv] of Object.entries(v)) {
+                                if (typeof sv === 'string' || typeof sv === 'number') {
+                                    html += `<div class="flex items-start gap-2"><span class="text-gray-500 text-xs min-w-[80px]">${sk.replace(/_/g, ' ')}:</span><span class="text-gray-200">${sv}</span></div>`;
+                                } else if (Array.isArray(sv)) {
+                                    html += `<div><span class="text-gray-500 text-xs">${sk.replace(/_/g, ' ')}:</span><ul class="mt-1 space-y-1">${sv.map(i => `<li class="text-gray-300 text-xs pr-3">- ${typeof i === 'object' ? Object.values(i).join(' | ') : i}</li>`).join('')}</ul></div>`;
+                                } else if (typeof sv === 'object' && sv !== null) {
+                                    html += `<div class="bg-white/[0.02] rounded-lg p-3 mt-1"><span class="text-gray-400 text-xs font-bold">${sk.replace(/_/g, ' ')}</span>`;
+                                    for (const [dk, dv] of Object.entries(sv)) {
+                                        html += `<div class="flex gap-2 mt-1"><span class="text-gray-500 text-xs">${dk.replace(/_/g, ' ')}:</span><span class="text-gray-200 text-xs">${Array.isArray(dv) ? dv.join('، ') : dv}</span></div>`;
+                                    }
+                                    html += `</div>`;
+                                }
+                            }
+                            html += `</div></div>`;
                         }
                     }
                     html += `</div>`;
@@ -1860,8 +1930,24 @@
                     agentScores[agentName] = data.score;
                 }
             } catch {
-                el.innerHTML = marked.parse(jsonStr);
-                el.classList.add('markdown-content');
+                // Smart fallback: split raw text into readable sections
+                let raw = jsonStr.trim();
+                // Remove JSON wrapper artifacts
+                raw = raw.replace(/^\s*\{?\s*"title"\s*:\s*/, '').replace(/\}\s*$/, '');
+                const sections = raw.split(/"(?:summary|details|recommendation|title|score|validation)"\s*:\s*/);
+                if (sections.length > 1) {
+                    let fallbackHtml = '<div class="space-y-4">';
+                    sections.forEach(s => {
+                        s = s.replace(/^["'\[,\s]+|["'\],\s]+$/g, '').replace(/",?\s*$/, '').trim();
+                        if (s.length > 10) {
+                            fallbackHtml += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><p class="text-gray-300 leading-relaxed text-sm">${s}</p></div>`;
+                        }
+                    });
+                    fallbackHtml += '</div>';
+                    el.innerHTML = fallbackHtml;
+                } else {
+                    el.innerHTML = `<div class="markdown-content">${marked.parse(jsonStr)}</div>`;
+                }
             }
         }
 
@@ -2058,19 +2144,32 @@
             const el = document.getElementById('brokerage-result');
             const scoreEl = document.getElementById('brokerage-score');
             try {
-                let cleanJsonStr = jsonStr.trim();
-                const match = cleanJsonStr.match(/\{[\s\S]*\}/);
-                if (match) cleanJsonStr = match[0];
-                const data = JSON.parse(cleanJsonStr);
+                const data = tryParseJSON(jsonStr);
+                if (!data) throw new Error('JSON parse failed');
                 let html = '';
-                
-                // Fallback
+
+                // Fallback for non-standard schema
                 if (!data.title && !data.summary && !data.recommendation && !data.score && (!data.models || data.models.length === 0) && Object.keys(data).length > 0) {
-                    html += `<div class="space-y-4 mb-4 text-sm text-gray-300">`;
+                    html += `<div class="space-y-5 mb-4 text-sm text-gray-300">`;
                     for (const [k, v] of Object.entries(data)) {
-                        html += `<div><span class="font-bold text-pink-400">${k.replace(/_/g, ' ')}:</span> `;
-                        if (typeof v === 'string' || typeof v === 'number') html += `<div class="mt-1">${v}</div></div>`;
-                        else html += `<div class="mt-2 bg-black/10 p-3 rounded-xl border border-white/5 overflow-x-auto" dir="ltr"><pre class="text-xs text-pink-300">${JSON.stringify(v, null, 2)}</pre></div></div>`;
+                        const label = k.replace(/_/g, ' ');
+                        if (typeof v === 'string' || typeof v === 'number') {
+                            html += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><h5 class="font-bold text-pink-400 text-sm mb-2">${label}</h5><div class="leading-relaxed">${v}</div></div>`;
+                        } else if (Array.isArray(v)) {
+                            html += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><h5 class="font-bold text-pink-400 text-sm mb-2">${label}</h5>`;
+                            html += `<ul class="space-y-2">` + v.map(item => {
+                                if (typeof item === 'object' && item !== null) {
+                                    let ih = '<li class="bg-white/[0.02] rounded-lg p-3 border border-white/5 space-y-1">';
+                                    for (const [ik, iv] of Object.entries(item)) ih += `<div><span class="text-gray-500 text-xs">${ik.replace(/_/g, ' ')}:</span> <span class="text-gray-200">${Array.isArray(iv) ? iv.join('، ') : iv}</span></div>`;
+                                    return ih + '</li>';
+                                }
+                                return `<li class="flex items-start gap-2"><span class="text-pink-400">&#9679;</span><span>${item}</span></li>`;
+                            }).join('') + `</ul></div>`;
+                        } else if (typeof v === 'object' && v !== null) {
+                            html += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><h5 class="font-bold text-pink-400 text-sm mb-2">${label}</h5><div class="space-y-2">`;
+                            for (const [sk, sv] of Object.entries(v)) html += `<div><span class="text-gray-500 text-xs">${sk.replace(/_/g,' ')}:</span> <span class="text-gray-200">${typeof sv === 'object' ? JSON.stringify(sv) : sv}</span></div>`;
+                            html += `</div></div>`;
+                        }
                     }
                     html += `</div>`;
                 }
@@ -2116,8 +2215,20 @@
                     agentScores['brokerage'] = data.score;
                 }
             } catch {
-                el.innerHTML = marked.parse(jsonStr);
-                el.classList.add('markdown-content');
+                let raw = jsonStr.trim();
+                raw = raw.replace(/^\s*\{?\s*"title"\s*:\s*/, '').replace(/\}\s*$/, '');
+                const sections = raw.split(/"(?:summary|details|recommendation|title|score|models|validation)"\s*:\s*/);
+                if (sections.length > 1) {
+                    let fallbackHtml = '<div class="space-y-4">';
+                    sections.forEach(s => {
+                        s = s.replace(/^["'\[,\s]+|["'\],\s]+$/g, '').replace(/",?\s*$/, '').trim();
+                        if (s.length > 10) fallbackHtml += `<div class="bg-white/[0.03] rounded-xl p-4 border border-white/5"><p class="text-gray-300 leading-relaxed text-sm">${s}</p></div>`;
+                    });
+                    fallbackHtml += '</div>';
+                    el.innerHTML = fallbackHtml;
+                } else {
+                    el.innerHTML = `<div class="markdown-content">${marked.parse(jsonStr)}</div>`;
+                }
             }
         }
 
@@ -2191,6 +2302,7 @@
             renderSwot(swot);
             renderActionPlan(plan);
             updateRadarChart();
+            switchAgentTab('market');
         }
 
         // ====== SSE Submit ======
@@ -2278,6 +2390,7 @@
                 console.log('[BSI] EventSource OPEN, readyState:', eventSource.readyState);
             };
 
+            let firstAgentArrived = false;
             const agentEvents = ['market_analysis', 'financial_analysis', 'competitive_analysis', 'legal_analysis', 'technical_analysis'];
             agentEvents.forEach(evt => {
                 eventSource.addEventListener(evt, (e) => {
@@ -2286,6 +2399,10 @@
                     document.getElementById(prefix + '-spinner').classList.add('hidden');
                     const data = JSON.parse(e.data);
                     renderAgentCard(prefix + '-result', prefix + '-score', data.content);
+                    // Auto-switch to first completed agent
+                    if (!firstAgentArrived) { firstAgentArrived = true; switchAgentTab(prefix); }
+                    // Refresh panel score if this tab is active
+                    if (activeAgentTab === prefix) switchAgentTab(prefix);
                 });
             });
 
@@ -2294,6 +2411,8 @@
                 document.getElementById('brokerage-spinner').classList.add('hidden');
                 const data = JSON.parse(e.data);
                 renderBrokerageModels(data.content);
+                if (!firstAgentArrived) { firstAgentArrived = true; switchAgentTab('brokerage'); }
+                if (activeAgentTab === 'brokerage') switchAgentTab('brokerage');
             });
 
             eventSource.addEventListener('data_sources_used', (e) => {
@@ -2322,7 +2441,11 @@
                             recEl.classList.remove('hidden');
                         }
                     }, 200);
-                } catch(mapErr) { console.warn('Map init error:', mapErr); }
+                } catch(mapErr) {
+                    console.warn('Map init error:', mapErr);
+                    const mapEl = document.getElementById('bahrain-map');
+                    if (mapEl) mapEl.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500 text-sm">${currentLang === 'ar' ? '⚠️ تعذر تحميل الخريطة' : '⚠️ Map failed to load'}</div>`;
+                }
             });
 
             eventSource.addEventListener('synthesizing', () => { console.log('[BSI] Synthesizing...'); document.getElementById('verdict-spinner').classList.remove('hidden'); });
@@ -2387,7 +2510,31 @@
             };
         });
 
-        // ====== Follow-up Chat ======
+        // ====== Follow-up Chat (with localStorage persistence) ======
+        function saveChatToStorage() {
+            if (!currentAnalysisId) return;
+            try { localStorage.setItem('bsi_chat_' + currentAnalysisId, JSON.stringify(chatHistory)); } catch {}
+        }
+
+        function loadChatFromStorage() {
+            if (!currentAnalysisId) return;
+            try {
+                const saved = localStorage.getItem('bsi_chat_' + currentAnalysisId);
+                if (saved) {
+                    chatHistory = JSON.parse(saved);
+                    const msgDiv = document.getElementById('chat-messages');
+                    msgDiv.innerHTML = '';
+                    for (let i = 0; i < chatHistory.length; i += 2) {
+                        const q = chatHistory[i];
+                        const a = chatHistory[i + 1];
+                        if (q) msgDiv.innerHTML += `<div class="chat-bubble flex justify-end"><div class="bg-neonBlue/20 border border-neonBlue/30 rounded-xl px-4 py-2 max-w-[80%]"><p class="text-sm text-white">${q.content}</p></div></div>`;
+                        if (a) msgDiv.innerHTML += `<div class="chat-bubble flex justify-start"><div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 max-w-[80%] markdown-content">${marked.parse(a.content)}</div></div>`;
+                    }
+                    msgDiv.scrollTop = msgDiv.scrollHeight;
+                }
+            } catch {}
+        }
+
         async function askFollowup() {
             const input = document.getElementById('chat-input');
             const question = input.value.trim();
@@ -2429,6 +2576,7 @@
                 msgDiv.innerHTML += `<div class="chat-bubble flex justify-start"><div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 max-w-[80%] markdown-content">${webBadge}${marked.parse(answer)}</div></div>`;
                 chatHistory.push({ role: 'user', content: question });
                 chatHistory.push({ role: 'assistant', content: answer });
+                saveChatToStorage();
             } catch (err) {
                 document.getElementById('typing-indicator')?.remove();
                 msgDiv.innerHTML += `<div class="chat-bubble flex justify-start"><div class="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2 text-red-300 text-sm">${currentLang === 'ar' ? 'خطأ في الاتصال' : 'Connection error'}</div></div>`;
@@ -2439,6 +2587,9 @@
         function clearChat() {
             chatHistory = [];
             document.getElementById('chat-messages').innerHTML = '';
+            if (currentAnalysisId) {
+                try { localStorage.removeItem('bsi_chat_' + currentAnalysisId); } catch {}
+            }
         }
 
         document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') askFollowup(); });
@@ -2455,8 +2606,17 @@
         async function submitRating() {
             if (!currentRating || !currentAnalysisId) return;
             const feedback = document.getElementById('rating-feedback').value;
-            await fetch(`/rate/${currentAnalysisId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rating: currentRating, feedback }) });
-            document.getElementById('rating-section').innerHTML = `<div class="bg-glass border border-glassBorder rounded-2xl p-6 text-center"><p class="text-emerald-400 font-bold">${currentLang === 'ar' ? 'شكراً لتقييمك!' : 'Thanks for your rating!'}</p></div>`;
+            const section = document.getElementById('rating-section');
+            try {
+                const resp = await fetch(`/rate/${currentAnalysisId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rating: currentRating, feedback }) });
+                if (resp.ok) {
+                    section.innerHTML = `<div class="bg-glass border border-glassBorder rounded-2xl p-6 text-center"><p class="text-emerald-400 font-bold">✅ ${currentLang === 'ar' ? 'شكراً لتقييمك!' : 'Thanks for your rating!'}</p></div>`;
+                } else {
+                    section.innerHTML += `<p class="text-red-400 text-sm mt-2">❌ ${currentLang === 'ar' ? 'فشل حفظ التقييم' : 'Failed to save rating'}</p>`;
+                }
+            } catch {
+                section.innerHTML += `<p class="text-red-400 text-sm mt-2">❌ ${currentLang === 'ar' ? 'خطأ في الاتصال' : 'Connection error'}</p>`;
+            }
         }
 
         // ====== Bahrain Data Sync ======
@@ -2959,84 +3119,9 @@
             }
         }
 
-        // ====== BAHRAIN COMPANIES DATABASE ======
-        // قاعدة بيانات شركات البحرين لكل نوع وساطة
-        const BAHRAIN_COMPANIES = {
-            // منصات B2B إلكترونية
-            b2b_marketplace: [
-                { name: 'Tradeling', sector: 'متعدد', desc: 'منصة B2B للتجارة الإلكترونية تربط الموردين بالشركات في المنطقة', website: 'tradeling.com' },
-                { name: 'Sary', sector: 'تجارة جملة', desc: 'منصة لتجار الجملة والمتاجر الصغيرة', website: 'sary.com' },
-            ],
-            // منصات النقل واللوجستيات
-            logistics: [
-                { name: 'Fetchr', sector: 'نقل ولوجستيات', desc: 'شركة لوجستيات تقنية متخصصة في الشحن والتوصيل', website: 'fetchr.us' },
-                { name: 'Aramex Bahrain', sector: 'نقل ولوجستيات', desc: 'شركة شحن ولوجستيات عالمية لها فرع في البحرين', website: 'aramex.com' },
-                { name: 'DHL Bahrain', sector: 'نقل ولوجستيات', desc: 'خدمات شحن سريع دولي', website: 'dhl.com' },
-            ],
-            // منصات العقارات
-            real_estate: [
-                { name: 'Property Finder Bahrain', sector: 'عقارات', desc: 'منصة للبحث عن العقارات للبيع والإيجار', website: 'propertyfinder.bh' },
-                { name: 'Eskan Bank', sector: 'عقارات وتمويل', desc: 'بنك متخصص في التمويل العقاري', website: 'eskanbank.com.bh' },
-            ],
-            // منصات التوصيل
-            delivery: [
-                { name: 'Talabat', sector: 'توصيل طعام', desc: 'منصة طلب وتوصيل الطعام', website: 'talabat.com' },
-                { name: 'Carriage', sector: 'توصيل طعام', desc: 'خدمة توصيل الطعام', website: 'carriage.com' },
-                { name: 'HungerStation', sector: 'توصيل طعام', desc: 'منصة طلب وتوصيل الطعام', website: 'hungerstation.com' },
-            ],
-            // منصات التأمين
-            insurance: [
-                { name: 'Bahrain Insurance', sector: 'تأمين', desc: 'شركة تأمين بحرينية', website: 'bahraininsurance.com' },
-                { name: 'Takaful International', sector: 'تأمين تكافلي', desc: 'شركة تأمين تكافلي', website: 'takaful.com.bh' },
-            ],
-            // منصات التوظيف
-            recruitment: [
-                { name: 'Bayt', sector: 'توظيف', desc: 'منصة توظيف إقليمية', website: 'bayt.com' },
-                { name: 'Naukrigulf', sector: 'توظيف', desc: 'منصة توظيف للخليج', website: 'naukrigulf.com' },
-            ],
-            // منصات السيارات
-            automotive: [
-                { name: 'OpenSooq', sector: 'سيارات', desc: 'منصة لبيع وشراء السيارات', website: 'opensooq.com' },
-                { name: 'YallaMotor', sector: 'سيارات', desc: 'منصة للسيارات الجديدة والمستعملة', website: 'yallamotor.com' },
-            ],
-            // خدمات الأعمال
-            business_services: [
-                { name: 'Tamkeen', sector: 'دعم الأعمال', desc: 'صندوق دعم وتطوير المشاريع', website: 'tamkeen.bh' },
-                { name: 'Bahrain BIC', sector: 'حاضنات أعمال', desc: 'مركز البحرين للمشاريع الناشئة', website: 'bic.com.bh' },
-            ],
-            // منصات التعليم
-            education: [
-                { name: 'Naseej', sector: 'تعليم', desc: 'منصة للتعليم والتدريب', website: 'naseej.com' },
-            ],
-            // منصات الصحة
-            health: [
-                { name: 'DoctorUna', sector: 'صحة', desc: 'منصة لحجز المواعيد الطبية', website: 'doctoruna.com' },
-                { name: 'HealthFactory', sector: 'صحة', desc: 'منصة للخدمات الصحية', website: 'healthfactory.com' },
-            ],
-            // منصات السفر
-            travel: [
-                { name: 'Cleartrip Bahrain', sector: 'سفر', desc: 'منصة لحجز الطيران والفنادق', website: 'cleartrip.com' },
-                { name: 'Booking.com', sector: 'سفر', desc: 'منصة لحجز الفنادق عالمياً', website: 'booking.com' },
-            ],
-            // خدمات التخليص الجمركي
-            customs: [
-                { name: 'Bahrain Customs', sector: 'تخليص جمركي', desc: 'الإدارة العامة للجمارك - البحرين', website: 'customs.gov.bh' },
-            ],
-            // منصات المزادات
-            auction: [
-                { name: 'Mazad', sector: 'مزادات', desc: 'منصة المزادات الإلكترونية', website: 'mazad.qa' },
-            ],
-            // منصات التجارة الإلكترونية
-            ecommerce: [
-                { name: 'OpenSooq', sector: 'تجارة إلكترونية', desc: 'منصة للبيع والشراء', website: 'opensooq.com' },
-                { name: 'Dubizzle Bahrain', sector: 'إعلانات', desc: 'منصة إعلانات مبوبة', website: 'dubizzle.com.bh' },
-            ],
-            // خدمات الذكاء الاصطناعي
-            ai_services: [
-                { name: 'STC Bahrain', sector: 'تقنية', desc: 'شركة اتصالات تقدم خدمات رقمية متطورة', website: 'stc.com.bh' },
-                { name: 'Bahrain FinTech Bay', sector: 'تقنية مالية', desc: 'مركز للابتكار في التكنولوجيا المالية', website: 'bahrainfintechbay.com' },
-            ],
-        };
+        // ====== BAHRAIN COMPANIES DATABASE (loaded from backend) ======
+        let BAHRAIN_COMPANIES = {};
+        fetch('/api/companies').then(r=>r.json()).then(d=>{BAHRAIN_COMPANIES=d;}).catch(()=>{});
 
         function findSimilarCompany(modelName, description) {
             const modelLower = modelName.toLowerCase();
@@ -3484,301 +3569,15 @@
         // تشغيل الجلب عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', fetchAndPopulateSectors);
 
-        // ====== BROKERAGE SOLUTIONS ======
-        // 3 حلول بديهية تعمل في جميع القطاعات
-        const UNIVERSAL_SOLUTIONS = [
-            {
-                icon: '🤖',
-                title: 'منصة الوساطة الذكية بالذكاء الاصطناعي',
-                description: 'منصة رقمية تستخدم AI لمطابقة البائعين مع المشترين تلقائياً بناءً على احتياجاتهم وتاريخهم. تقلل الوقت وتزيد معدل نجاح الصفقات.',
-                features: ['مطابقة ذكية', 'تقييم آلي للثقة', 'تقارير تنبؤية'],
-                success_rate: '85%',
-                implementation: '2-3 أشهر',
-                cost: 'متوسط'
-            },
-            {
-                icon: '📱',
-                title: 'تطبيق الجوال للوساطة الفورية',
-                description: 'تطبيق يربط العملاء بالوسطاء المعتمدين في الوقت الفعلي مع نظام تقييم وشفافية كامل في العمولات والإجراءات.',
-                features: ['إشعارات فورية', 'تتبع المعاملات', 'دفع إلكتروني'],
-                success_rate: '78%',
-                implementation: '1-2 شهر',
-                cost: 'منخفض'
-            },
-            {
-                icon: '🌐',
-                title: 'شبكة الوسطاء المتعاونين',
-                description: 'شبكة تربط بين شركات الوساطة الصغيرة والمتوسطة لتبادل الفرص والعملاء، مما يزيد من تغطية السوق والكفاءة.',
-                features: ['تبادل العملاء', 'عمولات مشتركة', 'دعم فني موحد'],
-                success_rate: '72%',
-                implementation: '3-4 أشهر',
-                cost: 'عالي'
-            }
-        ];
+        // ====== BROKERAGE SOLUTIONS (loaded from backend) ======
+        let UNIVERSAL_SOLUTIONS = [];
+        let SECTOR_SOLUTIONS = {};
+        fetch('/api/solutions').then(r=>r.json()).then(d=>{
+            UNIVERSAL_SOLUTIONS = d.universal || [];
+            SECTOR_SOLUTIONS = d.sector || {};
+        }).catch(()=>{});
 
-        // حلول مخصصة لكل قطاع - تم تنفيذها ونجحت
-        const SECTOR_SOLUTIONS = {
-            food_hospitality: [
-                {
-                    icon: '🍽️',
-                    title: 'منصة ربط المطاعم بالموردين',
-                    description: 'منصة رقمية تربط المطاعم والكافيهات بموردي المواد الغذائية والخضروات مباشرة، مع نظام طلبات وتتبع. نجحت في تقليل التكاليف 25%.',
-                    company: 'FoodLink Bahrain',
-                    result: '250+ مطعم مشترك',
-                    year: '2022'
-                },
-                {
-                    icon: '🚚',
-                    title: 'وساطة خدمات التموين المركزي',
-                    description: 'خدمة وساطة متخصصة في ربط شركات التموين بالمؤسسات (مدارس، مستشفيات، شركات) مع إدارة العقود والجودة.',
-                    company: 'Catering Connect',
-                    result: '50+ عقد سنوي',
-                    year: '2021'
-                },
-                {
-                    icon: '🥬',
-                    title: 'سوق الجملة الإلكتروني للخضروات',
-                    description: 'منصة B2B تربط مزارعي البحرين بالتجار والمطاعم مباشرة دون وسطاء تقليديين، مع توصيل مباشر.',
-                    company: 'Bahrain Fresh Market',
-                    result: '100+ مزارع',
-                    year: '2023'
-                }
-            ],
-            real_estate: [
-                {
-                    icon: '🏢',
-                    title: 'منصة العقارات الذكية للإيجار',
-                    description: 'منصة رقمية متخصصة في تأجير العقارات السكنية والتجارية مع زيارات افتراضية وعقود إلكترونية. حققت نمو 300% في سنة.',
-                    company: 'SmartRent Bahrain',
-                    result: '500+ عقد إيجار شهرياً',
-                    year: '2022'
-                },
-                {
-                    icon: '🏗️',
-                    title: 'وساطة المقاولات والمشاريع',
-                    description: 'خدمة تربط أصحاب المشاريع بالمقاولين المعتمدين مع ضمان جودة ونظام مراحل دفع آمن.',
-                    company: 'BuildConnect',
-                    result: '120+ مشروع منجز',
-                    year: '2021'
-                },
-                {
-                    icon: '📊',
-                    title: 'تقييم العقارات الآلي',
-                    description: 'نظام وساطة يقدم تقييمات فورية للعقارات بناءً على بيانات السوق والموقع والمقارنات.',
-                    company: 'PropValuator',
-                    result: '10,000+ تقييم',
-                    year: '2023'
-                }
-            ],
-            technology: [
-                {
-                    icon: '💻',
-                    title: 'سوق البرمجيات والتطبيقات',
-                    description: 'منصة تربط شركات البرمجة بالعملاء المحتاجين حلول تقنية، مع نظام مراحل ومتابعة المشاريع.',
-                    company: 'TechHub Bahrain',
-                    result: '300+ مشروع تقني',
-                    year: '2022'
-                },
-                {
-                    icon: '☁️',
-                    title: 'وساطة خدمات الحوسبة السحابية',
-                    description: 'خدمة تساعد الشركات في اختيار ومقارنة مزودي الخدمات السحابية مع دعم فني متخصص.',
-                    company: 'CloudBroker BH',
-                    result: '150+ شركة مشتركة',
-                    year: '2021'
-                },
-                {
-                    icon: '🔒',
-                    title: 'وساطة الأمن السيبراني',
-                    description: 'منصة تربط الشركات بخبراء الأمن السيبراني وشركات الحماية مع تقييم مخاطر مجاني.',
-                    company: 'SecureLink',
-                    result: '80+ تقييم أمني',
-                    year: '2023'
-                }
-            ],
-            finance: [
-                {
-                    icon: '🏦',
-                    title: 'منصة مقارنة منتجات التمويل',
-                    description: 'منصة تتيح للأفراد والشركات مقارنة قروض البنوك والتمويلات مع وساطة في إتمام الإجراءات.',
-                    company: 'FinanceCompare BH',
-                    result: '200+ تمويل منجز',
-                    year: '2022'
-                },
-                {
-                    icon: '🛡️',
-                    title: 'وساطة التأمين الذكية',
-                    description: 'منصة رقمية لمقارنة وشراء وثائق التأمين مع استشارات مخصصة وادعاءات إلكترونية.',
-                    company: 'InsureTech Bahrain',
-                    result: '5,000+ وثيقة تأمين',
-                    year: '2021'
-                },
-                {
-                    icon: '💰',
-                    title: 'وساطة الاستثمار للشركات الناشئة',
-                    description: 'منصة تربط المستثمرين بالشركات الناشئة مع تقييم جدوى وإدارة استثمارات.',
-                    company: 'StartupInvest BH',
-                    result: '45+ صفقة استثمار',
-                    year: '2023'
-                }
-            ],
-            manufacturing: [
-                {
-                    icon: '🏭',
-                    title: 'منصة توريد المواد الخام',
-                    description: 'منصة B2B تربط المصانع بموردي المواد الخام المحليين والدوليين مع إدارة مخزون ذكية.',
-                    company: 'SupplyChain BH',
-                    result: '80+ مصنع مشترك',
-                    year: '2022'
-                },
-                {
-                    icon: '📦',
-                    title: 'وساطة التصنيع حسب الطلب',
-                    description: 'خدمة تربط العملاء بمصانع للتصنيع OEM حسب الطلب مع مراقبة جودة وشحن.',
-                    company: 'MakeIt Bahrain',
-                    result: '150+ طلب تصنيع',
-                    year: '2021'
-                },
-                {
-                    icon: '🔄',
-                    title: 'سوق المعدات الصناعية المستعملة',
-                    description: 'منصة متخصصة في بيع وشراء المعدات الصناعية المستعملة مع تقييم وفحص فني.',
-                    company: 'IndustrialExchange',
-                    result: '300+ آلة مباعة',
-                    year: '2023'
-                }
-            ],
-            health: [
-                {
-                    icon: '🏥',
-                    title: 'منصة حجز المواعيد الطبية',
-                    description: 'منصة شاملة لحجز مواعيد في العيادات والمستشفيات مع ملف طبي إلكتروني ومتابعة.',
-                    company: 'HealthBook Bahrain',
-                    result: '50,000+ حجز شهرياً',
-                    year: '2022'
-                },
-                {
-                    icon: '💊',
-                    title: 'وساطة الأدوية والمستلزمات',
-                    description: 'منصة تربط الصيدليات والمستشفيات بموردي الأدوية مع إدارة مخزون وطلبات دورية.',
-                    company: 'PharmaLink BH',
-                    result: '200+ صيدلية',
-                    year: '2021'
-                },
-                {
-                    icon: '🏠',
-                    title: 'وساطة الرعاية الصحية المنزلية',
-                    description: 'خدمة تربط المرضى بمقدمي الرعاية المنزلية والتمريض مع متابعة ومتابعة صحية.',
-                    company: 'HomeCare Bahrain',
-                    result: '1,000+ مريض شهرياً',
-                    year: '2023'
-                }
-            ],
-            education: [
-                {
-                    icon: '🎓',
-                    title: 'منصة التدريب المهني للشركات',
-                    description: 'منصة تربط الشركات بمراكز التدريب والمدربين المعتمدين لبرامج تطوير الموظفين.',
-                    company: 'CorpTrain Bahrain',
-                    result: '100+ شركة مشتركة',
-                    year: '2022'
-                },
-                {
-                    icon: '📚',
-                    title: 'سوق المحتوى التعليمي الرقمي',
-                    description: 'منصة تربط المعلمين والمدربين بالطلاب لبيع وشراء المحتوى التعليمي والدورات.',
-                    company: 'EduContent BH',
-                    result: '5,000+ طالب',
-                    year: '2021'
-                },
-                {
-                    icon: '🌍',
-                    title: 'وساطة الدراسة في الخارج',
-                    description: 'خدمة متكاملة لمساعدة الطلاب في اختيار الجامعات والقبول والإقامة في الخارج.',
-                    company: 'StudyAbroad BH',
-                    result: '300+ طالب سنوياً',
-                    year: '2023'
-                }
-            ],
-            transport: [
-                {
-                    icon: '🚛',
-                    title: 'منصة الشحن اللوجستي الذكي',
-                    description: 'منصة رقمية تربط أصحاب البضائع بشركات النقل والشحن مع تتبع مباشر وأسعار تنافسية.',
-                    company: 'LogiConnect Bahrain',
-                    result: '10,000+ شحنة شهرياً',
-                    year: '2022'
-                },
-                {
-                    icon: '🚗',
-                    title: 'وساطة تأجير المركبات للشركات',
-                    description: 'خدمة تربط الشركات بمكاتب تأجير السيارات والشاحنات مع عقود سنوية مخفضة.',
-                    company: 'FleetLease BH',
-                    result: '500+ مركبة مستأجرة',
-                    year: '2021'
-                },
-                {
-                    icon: '📦',
-                    title: 'وساطة التخزين والمستودعات',
-                    description: 'منصة تربط التجار بأصحاب المستودعات الفارغة للتخزين المؤقت أو الطويل الأمد.',
-                    company: 'StorageHub Bahrain',
-                    result: '50+ مستودع مشترك',
-                    year: '2023'
-                }
-            ],
-            retail: [
-                {
-                    icon: '🛒',
-                    title: 'منصة الجملة للتجار الإلكترونيين',
-                    description: 'منصة B2B تربط تجار الجملة بأصحاب المتاجر الإلكترونية مع دروبشيبينغ ومخزون مشترك.',
-                    company: 'WholesaleEcom BH',
-                    result: '400+ تاجر إلكتروني',
-                    year: '2022'
-                },
-                {
-                    icon: '🏪',
-                    title: 'وساطة امتياز العلامات التجارية',
-                    description: 'خدمة تربط العلامات التجارية العالمية بالمستثمرين المحليين لفتح امتيازات في البحرين.',
-                    company: 'FranchiseLink BH',
-                    result: '30+ علامة تجارية',
-                    year: '2021'
-                },
-                {
-                    icon: '🎁',
-                    title: 'منصة الهدايا والتغليف المخصص',
-                    description: 'منصة تربط الشركات بموردي الهدايا والتغليف للمناسبات والمؤتمرات مع تخصيح كامل.',
-                    company: 'GiftPro Bahrain',
-                    result: '200+ شركة عميلة',
-                    year: '2023'
-                }
-            ],
-            ai_applications: [
-                {
-                    icon: '🤖',
-                    title: 'منصة تخصيص نماذج الذكاء الاصطناعي',
-                    description: 'منصة تربط الشركات بمطوري AI لتخصيص نماذج ChatGPT وغيرها لاحتياجات الأعمال الخاصة.',
-                    company: 'AICustom Bahrain',
-                    result: '100+ نموذج مخصص',
-                    year: '2023'
-                },
-                {
-                    icon: '📞',
-                    title: 'وساطة خدمة العملاء بالذكاء الاصطناعي',
-                    description: 'خدمة تربط الشركات بمزودي حلول chatbot وخدمة العملاء الآلية مع تدريب وتخصيص.',
-                    company: 'AI Support BH',
-                    result: '80+ شركة مشتركة',
-                    year: '2023'
-                },
-                {
-                    icon: '📊',
-                    title: 'وساطة تحليل البيانات بالذكاء الاصطناعي',
-                    description: 'منصة تربط الشركات بخبراء تحليل البيانات وAI لاستخراج رؤى من بياناتهم.',
-                    company: 'DataAI Bahrain',
-                    result: '150+ مشروع تحليل',
-                    year: '2023'
-                }
-            ]
-        };
+        // Sector solutions data removed - loaded via /api/solutions above
 
         function renderSolutions(sector) {
             // عرض الحلول البديهية (3 حلول تعمل في كل القطاعات)
