@@ -1,5 +1,8 @@
 nul
 debug.log
-debug.log.1
+debug.log.*
 __pycache__/
 *.pyc
+.env
+analyses.db
+.venv/

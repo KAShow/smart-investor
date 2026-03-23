@@ -9,3 +9,4 @@ aiohttp==3.9.3
 ddgs==6.3.5
 pytrends>=4.9.0
 duckduckgo-search>=4.0
+gunicorn==22.0.0

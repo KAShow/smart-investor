@@ -1352,5 +1352,7 @@ def api_solutions():
 
 if __name__ == '__main__':
     is_debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
-    webbrowser.open('http://localhost:5000')
-    app.run(debug=is_debug, use_reloader=False)
+    port = int(os.getenv('PORT', 5000))
+    if not os.getenv('RENDER'):
+        webbrowser.open(f'http://localhost:{port}')
+    app.run(host='0.0.0.0', port=port, debug=is_debug, use_reloader=False)
