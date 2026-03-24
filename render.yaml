@@ -3,7 +3,7 @@ services:
     name: smart-investor
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --worker-class gthread --workers 2 --threads 8 --timeout 300
     envVars:
       - key: PERPLEXITY_API_KEY
         sync: false
