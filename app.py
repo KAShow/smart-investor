@@ -306,14 +306,21 @@ def analyze_stream():
         thread.start()
 
         results = {}
+        waited = 0
         # انتظار نتائج الوكلاء الستة
         while True:
             try:
-                name, data = event_queue.get(timeout=300)
+                name, data = event_queue.get(timeout=10)
+                waited = 0  # reset on successful event
             except queue.Empty:
-                logger.error("❌ انتهت مهلة انتظار الوكلاء (5 دقائق)")
-                yield f"event: error\ndata: {json.dumps({'error': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
-                return
+                # Heartbeat to keep SSE alive (prevents Render proxy timeout)
+                yield ": heartbeat\n\n"
+                waited += 10
+                if waited >= 300:
+                    logger.error("❌ انتهت مهلة انتظار الوكلاء (5 دقائق)")
+                    yield f"event: error\ndata: {json.dumps({'error': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
+                    return
+                continue
             if name == "agents_done":
                 break
             if name in ("data_sources_used", "competitors_found"):
@@ -353,11 +360,18 @@ def analyze_stream():
 
         t = threading.Thread(target=synth_thread)
         t.start()
-        try:
-            status, verdict = synth_queue.get(timeout=300)
-        except queue.Empty:
-            logger.error("❌ انتهت مهلة انتظار المُجمّع (5 دقائق)")
-            status, verdict = "error", "انتهت مهلة التجميع"
+        waited = 0
+        while True:
+            try:
+                status, verdict = synth_queue.get(timeout=10)
+                break
+            except queue.Empty:
+                yield ": heartbeat\n\n"
+                waited += 10
+                if waited >= 300:
+                    logger.error("❌ انتهت مهلة انتظار المُجمّع (5 دقائق)")
+                    status, verdict = "error", "انتهت مهلة التجميع"
+                    break
 
         if status == "error":
             verdict = json.dumps({"summary": verdict, "consensus": [], "conflicts": [], "verdict": "خطأ", "overall_score": 0, "score_justification": "", "recommended_model": "", "model_justification": "", "advice": []}, ensure_ascii=False)
@@ -385,12 +399,20 @@ def analyze_stream():
 
         et = threading.Thread(target=run_extras)
         et.start()
-        try:
-            _, swot_result, plan_result = extras_queue.get(timeout=300)
-        except queue.Empty:
-            logger.error("❌ انتهت مهلة SWOT/ActionPlan (5 دقائق)")
-            swot_result = json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": [], "swot_summary": []}, ensure_ascii=False)
-            plan_result = json.dumps({"executive_summary": "انتهت مهلة التحليل", "phases": [], "total_budget": "", "key_metrics": [], "critical_success_factors": [], "risk_mitigation": []}, ensure_ascii=False)
+        waited = 0
+        swot_result = plan_result = None
+        while True:
+            try:
+                _, swot_result, plan_result = extras_queue.get(timeout=10)
+                break
+            except queue.Empty:
+                yield ": heartbeat\n\n"
+                waited += 10
+                if waited >= 300:
+                    logger.error("❌ انتهت مهلة SWOT/ActionPlan (5 دقائق)")
+                    swot_result = json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": [], "swot_summary": []}, ensure_ascii=False)
+                    plan_result = json.dumps({"executive_summary": "انتهت مهلة التحليل", "phases": [], "total_budget": "", "key_metrics": [], "critical_success_factors": [], "risk_mitigation": []}, ensure_ascii=False)
+                    break
 
         yield f"event: swot_analysis\ndata: {json.dumps({'content': swot_result}, ensure_ascii=False)}\n\n"
         yield f"event: action_plan\ndata: {json.dumps({'content': plan_result}, ensure_ascii=False)}\n\n"
@@ -1171,15 +1193,20 @@ def gap_analysis_stream():
         thread = threading.Thread(target=run_analysis)
         thread.start()
 
+        waited = 0
         while True:
             try:
-                event_name, event_data = event_queue.get(timeout=300)
+                event_name, event_data = event_queue.get(timeout=10)
+                waited = 0
                 yield f"event: {event_name}\ndata: {json.dumps(event_data, ensure_ascii=False)}\n\n"
                 if event_name in ('done', 'error'):
                     break
             except queue.Empty:
-                yield f"event: error\ndata: {json.dumps({'message': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
-                break
+                yield ": heartbeat\n\n"
+                waited += 10
+                if waited >= 300:
+                    yield f"event: error\ndata: {json.dumps({'message': 'انتهت مهلة التحليل'}, ensure_ascii=False)}\n\n"
+                    break
 
     return Response(generate(), mimetype='text/event-stream',
                     headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
