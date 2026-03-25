@@ -15,11 +15,16 @@ from logging.handlers import RotatingFileHandler
 _log_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 _stream_handler = logging.StreamHandler(sys.stdout)
 _stream_handler.setFormatter(_log_formatter)
-_file_handler = RotatingFileHandler('debug.log', encoding='utf-8', maxBytes=5*1024*1024, backupCount=3)
-_file_handler.setFormatter(_log_formatter)
+_handlers = [_stream_handler]
+try:
+    _file_handler = RotatingFileHandler('debug.log', encoding='utf-8', maxBytes=5*1024*1024, backupCount=3)
+    _file_handler.setFormatter(_log_formatter)
+    _handlers.append(_file_handler)
+except Exception:
+    pass  # Render filesystem may not support file logging
 logging.basicConfig(
     level=logging.DEBUG,
-    handlers=[_stream_handler, _file_handler]
+    handlers=_handlers
 )
 logger = logging.getLogger(__name__)
 
@@ -84,7 +89,7 @@ async def create_completion(provider: str, model: str, api_key: str, messages: l
 
     try:
         if provider == 'anthropic':
-            client = AsyncAnthropic(api_key=api_key)
+            client = AsyncAnthropic(api_key=api_key, timeout=120.0)
             # استخراج system message من messages
             system_content = ""
             user_messages = []
@@ -120,7 +125,7 @@ async def create_completion(provider: str, model: str, api_key: str, messages: l
             client_kwargs = {"api_key": api_key}
             if provider_config.get('base_url'):
                 client_kwargs["base_url"] = provider_config['base_url']
-            client = AsyncOpenAI(**client_kwargs)
+            client = AsyncOpenAI(**client_kwargs, timeout=120.0)
             response = await client.chat.completions.create(
                 model=effective_model,
                 messages=messages,
@@ -146,7 +151,7 @@ class BaseAgent:
         self.system_prompt = system_prompt
 
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(2),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type((
             openai.APITimeoutError,
