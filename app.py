@@ -217,40 +217,23 @@ def analyze_stream():
             except ValueError:
                 pass
 
-        async def run_agents():
-            async def run_agent(name, coro):
-                try:
-                    logger.info(f"🚀 بدء وكيل: {name}")
-                    result = await coro
-                    logger.info(f"✅ وكيل {name} انتهى بنجاح | طول النتيجة: {len(result) if result else 0}")
-                    event_queue.put((name, result))
-                except RetryError as e:
-                    last_err = e.last_attempt.exception() if e.last_attempt else e
-                    err_type = type(last_err).__name__
-                    err_msg = str(last_err)
-                    logger.error(f"❌❌ وكيل {name} فشل بعد 3 محاولات!")
-                    logger.error(f"❌ نوع الخطأ الأصلي: {err_type}")
-                    logger.error(f"❌ رسالة الخطأ: {err_msg}")
-                    logger.error(f"❌ التتبع الكامل:\n{traceback.format_exc()}")
-                    event_queue.put((name, json.dumps({"title": "خطأ", "summary": f"{err_type}: {err_msg}", "details": [f"فشل بعد 3 محاولات", f"نوع الخطأ: {err_type}"], "score": 0, "recommendation": ""}, ensure_ascii=False)))
-                except Exception as e:
-                    err_type = type(e).__name__
-                    err_msg = str(e)
-                    logger.error(f"❌ وكيل {name} فشل: {err_type}: {err_msg}")
-                    logger.error(f"❌ التتبع:\n{traceback.format_exc()}")
-                    event_queue.put((name, json.dumps({"title": "خطأ", "summary": f"{err_type}: {err_msg}", "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)))
+        def run_all():
+            from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            # جلب بيانات إضافية من مصادر متعددة
+            # Step 1: Fetch data (async — aiohttp works fine with gunicorn)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             try:
-                aggregated = await data_aggregator.fetch_all(sector)
+                aggregated = loop.run_until_complete(data_aggregator.fetch_all(sector))
             except Exception as e:
                 logger.warning(f"⚠️ فشل جلب البيانات الإضافية: {e}")
                 aggregated = {}
+            loop.close()
 
             # جلب وإثراء بيانات المنافسين
             sijilat_source = SijilatSource()
             competitors_raw = sijilat_source.get_competitors(sector)
-            competitors_enriched = competitors_raw  # default: no enrichment
+            competitors_enriched = competitors_raw
             try:
                 enrichment = CompetitorEnrichment()
                 competitors_enriched = enrichment.enrich_batch(competitors_raw, sector, max_enrich=8)
@@ -258,7 +241,6 @@ def analyze_stream():
             except Exception as e:
                 logger.warning(f"⚠️ فشل إثراء المنافسين: {e}")
 
-            # إرسال بيانات المنافسين للواجهة
             event_queue.put(("competitors_found", json.dumps({
                 "count": len(competitors_enriched),
                 "competitors": competitors_enriched,
@@ -272,7 +254,6 @@ def analyze_stream():
             technical_ctx = market_context + data_aggregator.build_agent_context(sector, "technical", aggregated)
             brokerage_ctx = market_context + data_aggregator.build_agent_context(sector, "brokerage_models", aggregated)
 
-            # إضافة بيانات المنافسين لسياق وكيل المنافسة
             if competitors_enriched:
                 comp_lines = ["\n\n══ بيانات المنافسين الفعليين من السجل التجاري ══"]
                 for i, c in enumerate(competitors_enriched, 1):
@@ -284,25 +265,42 @@ def analyze_stream():
                     comp_lines.append(line)
                 competitive_ctx += "\n".join(comp_lines)
 
-            # إرسال خريطة مصادر البيانات لكل وكيل
             attribution = data_aggregator.build_data_attribution(aggregated)
             event_queue.put(("data_sources_used", json.dumps(attribution, ensure_ascii=False)))
 
-            # تشغيل الوكلاء الستة بالتوازي مع بيانات مخصصة لكل وكيل
-            await asyncio.gather(
-                run_agent("market_analysis", market_agent.analyze(idea, api_key, provider, model, market_context=market_ctx)),
-                run_agent("financial_analysis", financial_agent.analyze(idea, api_key, provider, model, market_context=financial_ctx)),
-                run_agent("competitive_analysis", competitive_agent.analyze(idea, api_key, provider, model, market_context=competitive_ctx)),
-                run_agent("legal_analysis", legal_agent.analyze(idea, api_key, provider, model, market_context=legal_ctx)),
-                run_agent("technical_analysis", technical_agent.analyze(idea, api_key, provider, model, market_context=technical_ctx)),
-                run_agent("brokerage_models_analysis", brokerage_models_agent.analyze(idea, api_key, provider, model, market_context=brokerage_ctx)),
-            )
+            # Step 2: Run 6 AI agents in parallel (sync — avoids httpx/asyncio conflict)
+            agent_tasks = [
+                ("market_analysis", market_agent, market_ctx),
+                ("financial_analysis", financial_agent, financial_ctx),
+                ("competitive_analysis", competitive_agent, competitive_ctx),
+                ("legal_analysis", legal_agent, legal_ctx),
+                ("technical_analysis", technical_agent, technical_ctx),
+                ("brokerage_models_analysis", brokerage_models_agent, brokerage_ctx),
+            ]
+
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                futures = {}
+                for name, agent, ctx in agent_tasks:
+                    future = executor.submit(
+                        agent.analyze_sync, idea, api_key, provider, model, market_context=ctx
+                    )
+                    futures[future] = name
+
+                for future in as_completed(futures):
+                    name = futures[future]
+                    try:
+                        result = future.result()
+                        logger.info(f"✅ وكيل {name} انتهى بنجاح | طول النتيجة: {len(result) if result else 0}")
+                        event_queue.put((name, result))
+                    except Exception as e:
+                        err_type = type(e).__name__
+                        err_msg = str(e)
+                        logger.error(f"❌ وكيل {name} فشل: {err_type}: {err_msg}")
+                        event_queue.put((name, json.dumps({"title": "خطأ", "summary": f"{err_type}: {err_msg}", "details": [], "score": 0, "recommendation": ""}, ensure_ascii=False)))
+
             event_queue.put(("agents_done", None))
 
-        def run_async():
-            asyncio.run(run_agents())
-
-        thread = threading.Thread(target=run_async)
+        thread = threading.Thread(target=run_all)
         thread.start()
 
         results = {}
@@ -333,20 +331,18 @@ def analyze_stream():
         yield f"event: synthesizing\ndata: {json.dumps({'status': 'started'}, ensure_ascii=False)}\n\n"
 
         def run_synthesizer():
-            async def _synthesize():
-                return await synthesizer.synthesize(
-                    idea=idea,
-                    market_analysis=results.get('market_analysis', ''),
-                    financial_analysis=results.get('financial_analysis', ''),
-                    competitive_analysis=results.get('competitive_analysis', ''),
-                    legal_analysis=results.get('legal_analysis', ''),
-                    technical_analysis=results.get('technical_analysis', ''),
-                    brokerage_models_analysis=results.get('brokerage_models_analysis', ''),
-                    api_key=api_key,
-                    provider=synthesizer_provider,
-                    model_override=synthesizer_model
-                )
-            return asyncio.run(_synthesize())
+            return synthesizer.synthesize_sync(
+                idea=idea,
+                market_analysis=results.get('market_analysis', ''),
+                financial_analysis=results.get('financial_analysis', ''),
+                competitive_analysis=results.get('competitive_analysis', ''),
+                legal_analysis=results.get('legal_analysis', ''),
+                technical_analysis=results.get('technical_analysis', ''),
+                brokerage_models_analysis=results.get('brokerage_models_analysis', ''),
+                api_key=api_key,
+                provider=synthesizer_provider,
+                model_override=synthesizer_model
+            )
 
         synth_queue = queue.Queue()
         def synth_thread():
@@ -383,19 +379,24 @@ def analyze_stream():
 
         extras_queue = queue.Queue()
         def run_extras():
-            async def _extras():
-                effective_model = model or get_default_model(provider)
-                swot_result, plan_result = await asyncio.gather(
-                    swot_agent.analyze(idea, results, api_key, provider=provider, model_override=effective_model),
-                    action_plan_agent.generate(idea, results, verdict, api_key, provider=provider, model_override=effective_model),
-                    return_exceptions=True
+            from concurrent.futures import ThreadPoolExecutor
+            effective_model = model or get_default_model(provider)
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                swot_future = executor.submit(
+                    swot_agent.analyze_sync, idea, results, api_key, provider=provider, model_override=effective_model
                 )
-                if isinstance(swot_result, Exception):
+                plan_future = executor.submit(
+                    action_plan_agent.generate_sync, idea, results, verdict, api_key, provider=provider, model_override=effective_model
+                )
+                try:
+                    swot_result = swot_future.result()
+                except Exception:
                     swot_result = json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": []}, ensure_ascii=False)
-                if isinstance(plan_result, Exception):
-                    plan_result = json.dumps({"executive_summary": str(plan_result), "phases": [], "total_budget": "", "key_metrics": [], "critical_success_factors": [], "risk_mitigation": []}, ensure_ascii=False)
-                extras_queue.put(("ok", swot_result, plan_result))
-            asyncio.run(_extras())
+                try:
+                    plan_result = plan_future.result()
+                except Exception:
+                    plan_result = json.dumps({"executive_summary": "فشل إنشاء خطة العمل", "phases": [], "total_budget": "", "key_metrics": [], "critical_success_factors": [], "risk_mitigation": []}, ensure_ascii=False)
+            extras_queue.put(("ok", swot_result, plan_result))
 
         et = threading.Thread(target=run_extras)
         et.start()
@@ -1138,13 +1139,14 @@ def gap_analysis_stream():
 
         def run_analysis():
             try:
-                # Step 1: Fetch all data
+                # Step 1: Fetch all data (async — aiohttp works fine)
                 event_queue.put(('status', {'message': 'جاري جلب البيانات من 10 مصادر...', 'step': 1}))
 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 aggregator = DataAggregator()
                 aggregated_data = loop.run_until_complete(aggregator.fetch_all(sector))
+                loop.close()
 
                 # Count successful sources
                 active = sum(1 for v in aggregated_data.values() if not v.get('error'))
@@ -1161,7 +1163,7 @@ def gap_analysis_stream():
 
                 context = aggregator.build_agent_context(sector, 'gap_analysis', aggregated_data)
 
-                # Step 3: Run gap analyzer AI agent
+                # Step 3: Run gap analyzer AI agent (sync — avoids httpx/asyncio conflict)
                 from agents.gap_analyzer import GapAnalyzerAgent
                 gap_agent = GapAnalyzerAgent()
 
@@ -1169,14 +1171,13 @@ def gap_analysis_stream():
                 if sector_info.get('brokerage_context'):
                     idea += f"\n\nسياق الوساطة: {sector_info['brokerage_context']}"
 
-                result = loop.run_until_complete(gap_agent.analyze(
+                result = gap_agent.analyze_sync(
                     idea=idea,
                     market_context=context,
                     provider=provider,
                     api_key=api_key,
                     model_override=model_override or None,
-                ))
-                loop.close()
+                )
 
                 event_queue.put(('gap_result', {'content': result, 'sector': sector}))
 

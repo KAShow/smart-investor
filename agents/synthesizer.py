@@ -195,3 +195,58 @@ class SynthesizerAgent:
             return content
         except json.JSONDecodeError:
             return json.dumps({"summary": content, "consensus": [], "conflicts": [], "verdict": "تحتاج دراسة أعمق", "overall_score": 0, "score_justification": "", "recommended_model": "", "model_justification": "", "advice": [], "weighted_breakdown": {}, "contradictions_found": [], "critical_data_gaps": [], "overall_confidence": 0, "advisor_opinion": ""}, ensure_ascii=False)
+
+    def synthesize_sync(self, idea, market_analysis, financial_analysis, competitive_analysis,
+                        api_key, legal_analysis='', technical_analysis='', brokerage_models_analysis='',
+                        provider='openai', model_override=None):
+        """Synchronous synthesize — works reliably with gunicorn."""
+        from .base import create_completion_sync
+        model = model_override or self.model
+        user_message = f"""دراسة جدوى الوساطة التجارية:
+{idea}
+
+---
+
+تحليل الطلب على الوساطة:
+{market_analysis}
+
+---
+
+تحليل الجدوى المالية للوساطة:
+{financial_analysis}
+
+---
+
+تحليل المنافسة في الوساطة:
+{competitive_analysis}
+
+---
+
+التحليل القانوني للوساطة:
+{legal_analysis or 'غير متوفر'}
+
+---
+
+تحليل الجدوى التقنية للمنصة:
+{technical_analysis or 'غير متوفر'}
+
+---
+
+تحليل نماذج الوساطة:
+{brokerage_models_analysis or 'غير متوفر'}
+
+---
+
+بناءً على التحليلات الستة أعلاه، قدم حكمك النهائي حول جدوى الوساطة التجارية في هذا القطاع، مع تحديد النموذج الأمثل."""
+
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+
+        content = create_completion_sync(provider, model, api_key, messages, max_tokens=5000, temperature=0.5)
+        try:
+            json.loads(content)
+            return content
+        except json.JSONDecodeError:
+            return json.dumps({"summary": content, "consensus": [], "conflicts": [], "verdict": "تحتاج دراسة أعمق", "overall_score": 0, "score_justification": "", "recommended_model": "", "model_justification": "", "advice": [], "weighted_breakdown": {}, "contradictions_found": [], "critical_data_gaps": [], "overall_confidence": 0, "advisor_opinion": ""}, ensure_ascii=False)

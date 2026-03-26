@@ -114,3 +114,58 @@ class ActionPlanAgent:
                 "critical_success_factors": [],
                 "risk_mitigation": []
             }, ensure_ascii=False)
+
+    def generate_sync(self, idea, all_analyses, verdict, api_key, provider='openai', model_override=None):
+        """Synchronous action plan — works reliably with gunicorn."""
+        from .base import create_completion_sync
+        user_message = f"""دراسة جدوى الوساطة التجارية:
+{idea}
+
+---
+
+الحكم النهائي:
+{verdict}
+
+---
+
+تحليل الطلب على الوساطة:
+{all_analyses.get('market_analysis', '')}
+
+تحليل الجدوى المالية:
+{all_analyses.get('financial_analysis', '')}
+
+تحليل المنافسة:
+{all_analyses.get('competitive_analysis', '')}
+
+التحليل القانوني:
+{all_analyses.get('legal_analysis', '')}
+
+التحليل التقني:
+{all_analyses.get('technical_analysis', '')}
+
+تحليل نماذج الوساطة:
+{all_analyses.get('brokerage_models_analysis', '')}
+
+---
+
+بناءً على كل ما سبق، قدم خطة عمل تنفيذية مفصلة ومرحلية لإطلاق مشروع الوساطة التجارية."""
+
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+
+        model = model_override or self.model
+        content = create_completion_sync(provider, model, api_key, messages, max_tokens=6000)
+        try:
+            json.loads(content)
+            return content
+        except json.JSONDecodeError:
+            return json.dumps({
+                "executive_summary": content,
+                "phases": [],
+                "total_budget": "غير محدد",
+                "key_metrics": [],
+                "critical_success_factors": [],
+                "risk_mitigation": []
+            }, ensure_ascii=False)

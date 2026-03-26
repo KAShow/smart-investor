@@ -109,3 +109,56 @@ class SwotAgent:
             return content
         except json.JSONDecodeError:
             return json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": [], "swot_summary": []}, ensure_ascii=False)
+
+    def analyze_sync(self, idea, all_analyses, api_key, provider='openai', model_override=None):
+        """Synchronous SWOT — works reliably with gunicorn."""
+        from .base import create_completion_sync
+        user_message = f"""دراسة جدوى الوساطة التجارية:
+{idea}
+
+---
+
+تحليل الطلب على الوساطة:
+{all_analyses.get('market_analysis', '')}
+
+---
+
+تحليل الجدوى المالية للوساطة:
+{all_analyses.get('financial_analysis', '')}
+
+---
+
+تحليل المنافسة في الوساطة:
+{all_analyses.get('competitive_analysis', '')}
+
+---
+
+التحليل القانوني للوساطة:
+{all_analyses.get('legal_analysis', '')}
+
+---
+
+التحليل التقني للمنصة:
+{all_analyses.get('technical_analysis', '')}
+
+---
+
+تحليل نماذج الوساطة:
+{all_analyses.get('brokerage_models_analysis', '')}
+
+---
+
+بناءً على جميع التحليلات أعلاه، قدم تحليل SWOT شامل لمشروع الوساطة التجارية."""
+
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+
+        model = model_override or self.model
+        content = create_completion_sync(provider, model, api_key, messages, max_tokens=4000)
+        try:
+            json.loads(content)
+            return content
+        except json.JSONDecodeError:
+            return json.dumps({"strengths": [], "weaknesses": [], "opportunities": [], "threats": [], "swot_summary": []}, ensure_ascii=False)
