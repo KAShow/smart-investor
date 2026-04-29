@@ -1,13 +1,51 @@
 services:
   - type: web
-    name: smart-investor
+    name: smart-investor-api
     runtime: python
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --worker-class gthread --workers 2 --threads 8 --timeout 300
+    healthCheckPath: /api/health
     envVars:
       - key: PERPLEXITY_API_KEY
         sync: false
-      - key: RENDER
-        value: "true"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: FERNET_KEY
+        generateValue: true
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smart-investor-redis
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://hawsh-khalifa.lovable.app,http://localhost:5173,http://localhost:8080
+      - key: ADMIN_USER_IDS
+        sync: false
+      - key: RATE_LIMIT_PER_USER_DAY
+        value: 5/day
+      - key: RATE_LIMIT_PER_IP_MINUTE
+        value: 30/minute
+      - key: PERPLEXITY_DEFAULT_MODEL
+        value: sonar-pro
+      - key: SHARE_TOKEN_EXPIRY_DAYS
+        value: "180"
+      - key: SSE_TIMEOUT_SECONDS
+        value: "300"
+      - key: LOG_LEVEL
+        value: INFO
       - key: FLASK_DEBUG
         value: "false"
+      - key: ENABLE_CLEANUP_SCHEDULER
+        value: "1"
+      - key: RENDER
+        value: "true"
+
+  - type: redis
+    name: smart-investor-redis
+    plan: free
+    ipAllowList: []

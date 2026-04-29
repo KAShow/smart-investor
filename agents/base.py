@@ -74,9 +74,7 @@ def _extract_json(text: str) -> str:
 
 
 async def create_completion(provider: str, model: str, api_key: str, messages: list, max_tokens: int = 4000, temperature: float = 0.2):
-    logger.info(f"═══════════════════════════════════════════")
-    logger.info(f"📡 create_completion بدأ | provider={provider} | model={model}")
-    logger.info(f"🔑 API Key: ***{api_key[-4:] if len(api_key) > 4 else '****'}")
+    logger.info(f"📡 create_completion start | provider={provider} | model={model}")
 
     # التأكد من أن المزود معروف، وإلا استخدام perplexity كافتراضي
     if provider not in PROVIDERS:
@@ -147,9 +145,7 @@ async def create_completion(provider: str, model: str, api_key: str, messages: l
 
 def create_completion_sync(provider: str, model: str, api_key: str, messages: list, max_tokens: int = 4000, temperature: float = 0.2):
     """Synchronous version of create_completion — works reliably with gunicorn."""
-    logger.info(f"═══════════════════════════════════════════")
-    logger.info(f"📡 create_completion_sync بدأ | provider={provider} | model={model}")
-    logger.info(f"🔑 API Key: ***{api_key[-4:] if len(api_key) > 4 else '****'}")
+    logger.info(f"📡 create_completion_sync start | provider={provider} | model={model}")
 
     if provider not in PROVIDERS:
         logger.warning(f"⚠️ مزود غير معروف '{provider}'، استخدام perplexity")
@@ -231,16 +227,15 @@ class BaseAgent:
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     async def analyze(self, idea: str, api_key: str, provider: str = 'openai', model_override: str = None, market_context: str = '') -> str:
+        from utils.sanitize import sanitize_user_input
         model = model_override or self.model
         agent_name = self.__class__.__name__
-        logger.info(f"")
-        logger.info(f"🤖 ══════ {agent_name}.analyze بدأ ══════")
-        logger.info(f"🤖 الوكيل: {agent_name} | model={model} | provider={provider}")
-        logger.info(f"💡 طول الفكرة: {len(idea)} حرف | سياق السوق: {len(market_context)} حرف")
+        logger.info(f"🤖 {agent_name}.analyze start | model={model} | provider={provider}")
 
-        user_content = idea
-        if market_context:
-            user_content = f"{idea}\n\n{market_context}"
+        idea_clean = sanitize_user_input(idea, max_len=4000)
+        # market_context is server-built — no untrusted strings — but we still cap length
+        ctx = (market_context or '')[:20000]
+        user_content = idea_clean if not ctx else f"{idea_clean}\n\n{ctx}"
 
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -278,14 +273,14 @@ class BaseAgent:
 
     def analyze_sync(self, idea: str, api_key: str, provider: str = 'openai', model_override: str = None, market_context: str = '') -> str:
         """Synchronous analyze — works reliably with gunicorn on Render."""
+        from utils.sanitize import sanitize_user_input
         model = model_override or self.model
         agent_name = self.__class__.__name__
-        logger.info(f"🤖 ══════ {agent_name}.analyze_sync بدأ ══════")
-        logger.info(f"🤖 الوكيل: {agent_name} | model={model} | provider={provider}")
+        logger.info(f"🤖 {agent_name}.analyze_sync start | model={model} | provider={provider}")
 
-        user_content = idea
-        if market_context:
-            user_content = f"{idea}\n\n{market_context}"
+        idea_clean = sanitize_user_input(idea, max_len=4000)
+        ctx = (market_context or '')[:20000]
+        user_content = idea_clean if not ctx else f"{idea_clean}\n\n{ctx}"
 
         messages = [
             {"role": "system", "content": self.system_prompt},

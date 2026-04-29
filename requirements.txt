@@ -1,12 +1,33 @@
-flask==3.0.0
-openai>=2.24.0
+Flask==3.0.3
+flask-cors==5.0.0
+Flask-Limiter[redis]==3.8.0
+gunicorn==23.0.0
+
+# Auth & crypto
+PyJWT[crypto]==2.9.0
+cryptography==43.0.1
+
+# AI providers
+openai>=1.51.0,<2.0.0
 anthropic>=0.40.0,<1.0.0
-python-dotenv==1.0.1
-tenacity==8.2.3
 google-generativeai>=0.8.3
+
+# HTTP clients
 requests>=2.31.0
 aiohttp>=3.9.3
-ddgs>=6.3.5
+
+# Reliability
+tenacity==9.0.0
+APScheduler==3.10.4
+redis==5.0.8
+
+# Data sources
 pytrends>=4.9.0
-duckduckgo-search>=4.0
-gunicorn==22.0.0
+ddgs>=6.3.5
+duckduckgo-search>=6.2.13
+
+# Reporting
+weasyprint==62.3
+
+# Env loading
+python-dotenv==1.0.1

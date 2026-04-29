@@ -1,95 +1,137 @@
-# 🔮 المساعد الاستثماري الذكي (Oracle AI)
+# 🔮 Smart Investor — المستثمر الذكي البحريني
 
-> **شاهد الشرح الكامل للمشروع وطريقة بنائه خطوة بخطوة في الفيديو المميز على يوتيوب:**
-> 
-> [![شرح المشروع على يوتيوب](https://img.youtube.com/vi/S5shoHtZMAk/maxresdefault.jpg)](https://youtu.be/S5shoHtZMAk)
-> 
-> **[اضغط هنا لمشاهدة الفيديو الآن](https://youtu.be/S5shoHtZMAk)** 🚀
+أداة دراسات جدوى احترافية لمشاريع الوساطة التجارية في مملكة البحرين، مدعومة بـ ٦ وكلاء ذكاء اصطناعي يعملون بالتوازي على مصادر بيانات حقيقية.
 
-## 📋 نبذة عن المشروع
+> **شاهد شرح الإصدار الأول على يوتيوب:**  
+> [![فيديو الشرح](https://img.youtube.com/vi/S5shoHtZMAk/maxresdefault.jpg)](https://youtu.be/S5shoHtZMAk)
 
-هذا المشروع عبارة عن نظام "لجنة استثمار ذكية" تعمل بالذكاء الاصطناعي، مصممة لتحليل الأفكار الاستثمارية والمشاريع الناشئة من عدة زوايا استراتيجية. يقوم النظام بمحاكاة دور ثلاثة محللين متخصصين بالإضافة إلى صانع قرار نهائي، لتقديم تقرير شامل يساعد رواد الأعمال والمستثمرين على اتخاذ قرارات مدروسة.
+## البنية الحالية (Production)
 
-## 🌟 المميزات الرئيسية
-
-يعتمد النظام على هيكلية **الماس الموجه (Diamond Structure)** في هندسة التوجيه (Prompt Engineering)، حيث يقوم بتوزيع المهام ثم تجميعها:
-
-1.  **تحليل منطق السوق (Market Logic Agent)**:
-    *   دراسة حجم السوق والنمو.
-    *   تحليل ديناميكيات العرض والطلب.
-    *   اكتشاف الفجوات السوقية وسلوك المستهلك.
-
-2.  **تحليل الاستدامة المالية (Financial Agent)**:
-    *   تحليل اقتصاديات الوحدة (Unit Economics).
-    *   دراسة هيكل التكاليف والإيرادات.
-    *   تقدير نقطة التعادل والاحتياجات التمويلية.
-
-3.  **تحليل المنافسة (Competitive Agent)**:
-    *   تقييم حواجز الدخول (Barriers to Entry).
-    *   تحليل الخندق التنافسي (Moat).
-    *   دراسة المخاطر التنافسية وإمكانية النسخ.
-
-4.  **الموائمة واتخاذ القرار (Synthesizer Agent)**:
-    *   تجميع التقارير الثلاثة.
-    *   الموازنة بين وجهات النظر المختلفة.
-    *   إصدار حكم نهائي (استثمار، حذر، رفض) مع نصائح استراتيجية.
-
-## 🛠️ التقنيات المستخدمة
-
-*   **Python**: لغة البرمجة الأساسية.
-*   **Flask**: إطار عمل الويب للواجهة الخلفية.
-*   **OpenAI API**: المحرك الذكي للعملاء (Agents).
-*   **Tailwind CSS**: لتصميم واجهة مستخدم عصرية وجذابة.
-*   **Asyncio**: لإدارة المعالجة المتوازية للعملاء لضمان السرعة.
-
-## 🚀 طريقة التثبيت والتشغيل
-
-اتبع الخطوات التالية لتشغيل المشروع على جهازك:
-
-### 1. المتطلبات المسبقة
-تأكد من تثبيت [Python](https://www.python.org/) على جهازك.
-
-### 2. استنساخ المستودع (Clone)
-قم بتحميل المشروع إلى جهازك:
-```bash
-git clone <رابط المستودع>
-cd investment-agent
+```
+┌──────────────────────────────────────┐         ┌──────────────────────────────────────┐
+│ hawsh-khalifa.lovable.app            │         │ smart-investor-api.onrender.com      │
+│ React + Vite + Tailwind + shadcn     │ ──JWT──>│ Flask 3 + gunicorn                   │
+│ Supabase Auth + DB                   │         │ Supabase JWT verify · Flask-Limiter  │
+│ /tools/smart-investor                │         │ Redis · SQLite (WAL) · Perplexity AI │
+└──────────────────────────────────────┘         └──────────────────────────────────────┘
 ```
 
-### 3. تثبيت المكتبات اللازمة
-قم بتثبيت المتطلبات المسجلة في ملف `requirements.txt`:
+- **Frontend**: مكوّنات React في مجلد `lovable/` تُنسخ إلى مشروع Lovable.dev (انظر [`lovable/README.md`](lovable/README.md))
+- **Backend**: Flask API-only في هذا الـ repo، نشر على Render
+- **Auth**: Supabase JWT إلزامي على كل المسارات الحساسة
+- **Rate limit**: ٥ تحليلات/يوم لكل مستخدم، ٣٠ طلب/دقيقة لكل IP
+- **PII**: مشفّرة عند الكتابة بـ Fernet (AES-128 + HMAC-SHA256)
+
+## 🏗️ هيكل المشروع
+
+```
+smart-investor/
+├── app.py                    # Application factory (60 سطر)
+├── config.py                 # تحميل env vars
+├── auth.py                   # Supabase JWT decorator
+├── extensions.py             # CORS + Limiter + security headers
+├── database.py               # SQLite WAL + cleanup + PII encryption
+├── routes/                   # Blueprints
+│   ├── analysis.py           # /api/analyze, /api/analyses/*
+│   ├── data.py               # /api/sectors, /api/data-sources/*
+│   ├── admin.py              # /api/admin/*
+│   └── reference_data.py     # COMPANIES و SOLUTIONS
+├── services/                 # منطق الأعمال خارج الـ routes
+│   ├── analysis_orchestrator.py  # SSE pipeline 6 وكلاء + synthesis
+│   ├── followup_service.py       # المحادثة الذكية بعد التحليل
+│   └── pdf_service.py            # تصدير PDF
+├── utils/                    # أدوات
+│   ├── sanitize.py           # دفاع من prompt injection
+│   ├── tokens.py             # secrets.token_urlsafe
+│   └── crypto.py             # تشفير PII
+├── agents/                   # وكلاء AI (6 + synthesizer + swot + action plan)
+├── data_sources/             # ربط بـ data.gov.bh, IMF, World Bank, إلخ
+├── lovable/                  # ملفات React جاهزة للنسخ في Lovable
+└── DEPLOYMENT.md             # دليل النشر التفصيلي
+```
+
+## 🚀 التشغيل المحلي
+
+### 1. متطلبات
+
+- Python 3.12+
+- (اختياري) Redis للـ rate limiting في multi-process
+
+### 2. الإعداد
+
 ```bash
+git clone <repo-url>
+cd smart-investor
+python -m venv .venv
+.venv/Scripts/activate    # Windows
+# source .venv/bin/activate  # macOS / Linux
 pip install -r requirements.txt
+cp .env.example .env
+# عدّل .env: ضع PERPLEXITY_API_KEY و SUPABASE_JWT_SECRET على الأقل
 ```
 
-### 4. تشغيل التطبيق
-قم بتشغيل خادم Flask:
+### 3. التشغيل
+
 ```bash
 python app.py
+# الخادم: http://localhost:5000
+# health: curl http://localhost:5000/api/health
 ```
 
-سيقوم المتصفح بفتح العنوان `http://localhost:5000` تلقائياً.
+## 📡 API Endpoints
 
-## 💡 كيفية الاستخدام
+| المسار | الوصف | المصادقة |
+|--------|------|---------|
+| `GET /api/health` | حالة الخدمة | عام |
+| `GET /api/sectors` | قائمة القطاعات | عام |
+| `GET /api/sectors/<sector>/market` | بيانات قطاع | عام |
+| `GET /api/data-sources/meta` | metadata المصادر | عام |
+| `GET /api/providers` | مزودي AI المدعومين | عام |
+| `GET /api/share/<token>` | عرض تحليل مشترك | عام |
+| `POST /api/analyze` | بدء تحليل (SSE) | JWT |
+| `GET /api/analyses` | قائمة تحليلاتي | JWT |
+| `GET /api/analyses/<id>` | تحليل واحد | JWT |
+| `DELETE /api/analyses/<id>` | حذف تحليل | JWT |
+| `POST /api/analyses/<id>/rate` | تقييم | JWT |
+| `POST /api/analyses/<id>/followup` | محادثة بعد التحليل | JWT |
+| `GET /api/analyses/<id>/export-pdf` | تنزيل PDF | JWT |
+| `GET /api/dashboard` | إحصائيات شخصية | JWT |
+| `POST /api/analyze-market-needs` | تحليل سريع | JWT |
+| `POST /api/gap-analysis` | تحليل فجوات (SSE) | JWT |
+| `POST /api/admin/sync-data` | تحديث بيانات البحرين | Admin |
+| `POST /api/admin/cleanup-expired` | حذف منتهيي الصلاحية | Admin |
 
-1.  بعد تشغيل التطبيق، ستظهر لك واجهة "Oracle AI".
-2.  أدخل **مفتاح API الخاص بـ OpenAI** في الحقل المخصص.
-3.  اكتب **فكرتك الاستثمارية** بالتفصيل في صندوق النص.
-4.  اضغط على زر **INITIALIZE ANALYSIS**.
-5.  استمتع بمشاهدة التحليل المتعمق من الزوايا الثلاث، ثم القرار النهائي!
+## 🔒 الإصلاحات الأمنية المطبّقة
 
-## 📂 هيكلية المشروع
+- ✅ Supabase JWT verification على كل المسارات الحساسة
+- ✅ CORS allowlist (لا wildcard)
+- ✅ Rate limiting بـ Redis (multi-process safe)
+- ✅ Tokens آمنة (`secrets.token_urlsafe(32)` بدلاً من UUID hex مقتطع)
+- ✅ تشفير PII عند الكتابة (Fernet)
+- ✅ Sanitization ضد prompt injection
+- ✅ Security headers (HSTS, X-Frame-Options, X-Content-Type-Options)
+- ✅ SQLite WAL mode + indexes
+- ✅ Cleanup job للسجلات المنتهية (APScheduler)
+- ✅ Owner-scoped queries (لا تسرّب بين المستخدمين)
+- ❌ تم حذف قبول API keys من URL params
+- ❌ تم حذف endpoint كتابة `.env` من الواجهة
 
-*   `app.py`: ملف التشغيل الرئيسي ونقاط الاتصال (Endpoints).
-*   `agents/`: يحتوي على كود العملاء الأذكياء:
-    *   `base.py`: الكلاس الأساسي للعملاء.
-    *   `market_logic.py`: عميل السوق.
-    *   `financial.py`: عميل المالية.
-    *   `competitive.py`: عميل المنافسة.
-    *   `synthesizer.py`: عميل القرار النهائي.
-*   `templates/`: ملفات HTML.
-*   `static/`: ملفات CSS و JavaScript (إن وجدت).
+## 🔮 وكلاء التحليل
 
----
+كل التحليل يستخدم **Perplexity Sonar Pro** عبر مفتاح واحد على الخادم. الوكلاء يعملون بالتوازي عبر `ThreadPoolExecutor`:
 
-**تم تطوير هذا المشروع كجزء من سلسلة تعليمية عن بناء أنظمة الوكلاء الذكية (AI Agents). لا تنسَ [مشاهدة الفيديو](https://youtu.be/S5shoHtZMAk) لفهم الكود بعمق!** ❤️
+1. **MarketLogic** — حجم السوق، الطلب، الاتجاهات
+2. **Financial** — اقتصاديات الوحدة، التكاليف، نقطة التعادل
+3. **Competitive** — المنافسون من السجل التجاري + الخندق
+4. **Legal** — التراخيص، الجمارك، الالتزام التنظيمي
+5. **Technical** — البنية التقنية المطلوبة
+6. **BrokerageModels** — نماذج الوساطة المقترحة
+
+ثم **Synthesizer** يُجمّع الستة، ثم **SWOT + ActionPlan** بالتوازي.
+
+## 📚 وثائق إضافية
+
+- [دليل النشر الكامل](DEPLOYMENT.md)
+- [دليل دمج Lovable.dev](lovable/README.md)
+- [وصف المشروع التفصيلي](PROJECT_DESCRIPTION.md)
+- [سجل التغييرات](CHANGELOG.md)

@@ -1,8 +1,67 @@
-nul
-debug.log
-debug.log.*
+# Python
 __pycache__/
 *.pyc
-.env
-analyses.db
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Environment & secrets
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+debug.log*
+nul
+
+# pip install errors (e.g. `pip install >=4.0` redirects shell to file)
+=*
+
+# Ad-hoc test outputs
+_test_*.txt
+
+# Screenshots and captured pages
+screencapture-*.png
+*.png
+
+# Saved web pages (keep checked-in source images only)
+دراسة*.html
+دراسة*_files/
+
+# Documentation binary assets (regenerable)
+Docs/*.png
+Docs/*.pdf
+
+# IDE / Editor
+.idea/
+.vscode/
+.qoder/
+.claude/settings.local.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (frontend assets if any)
+node_modules/
+dist/
+build/
+package-lock.json
