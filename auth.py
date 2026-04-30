@@ -1,7 +1,11 @@
 """Supabase JWT verification middleware.
 
-Verifies the Authorization: Bearer <token> header against SUPABASE_JWT_SECRET.
-Decoded user_id (sub) and email land in flask.g for handlers to use.
+Supports both:
+- New asymmetric JWT signing keys (RS256/ES256) via JWKS endpoint
+- Legacy HS256 with shared secret
+
+Tries asymmetric first (the default for new Supabase projects), falls back
+to HS256 if SUPABASE_JWT_SECRET is set and asymmetric verification fails.
 """
 import logging
 from functools import wraps
@@ -13,10 +17,49 @@ from config import Config, is_admin
 
 logger = logging.getLogger(__name__)
 
+_jwks_client: jwt.PyJWKClient | None = None
 
-def _decode_token(token: str) -> dict | None:
+
+def _get_jwks_client() -> jwt.PyJWKClient | None:
+    global _jwks_client
+    if _jwks_client is not None:
+        return _jwks_client
+    if not Config.SUPABASE_URL:
+        return None
+    jwks_url = f"{Config.SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    try:
+        _jwks_client = jwt.PyJWKClient(jwks_url, cache_keys=True, lifespan=3600)
+        return _jwks_client
+    except Exception as e:
+        logger.warning(f"Could not init JWKS client: {e}")
+        return None
+
+
+def _decode_asymmetric(token: str) -> dict | None:
+    client = _get_jwks_client()
+    if not client:
+        return None
+    try:
+        signing_key = client.get_signing_key_from_jwt(token).key
+        return jwt.decode(
+            token,
+            signing_key,
+            algorithms=['RS256', 'ES256'],
+            audience=Config.SUPABASE_JWT_AUDIENCE,
+        )
+    except jwt.ExpiredSignatureError:
+        logger.info("JWT expired (asymmetric)")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.debug(f"Asymmetric verify failed: {e}")
+        return None
+    except Exception as e:
+        logger.debug(f"JWKS lookup failed: {e}")
+        return None
+
+
+def _decode_symmetric(token: str) -> dict | None:
     if not Config.SUPABASE_JWT_SECRET:
-        logger.error("SUPABASE_JWT_SECRET not configured")
         return None
     try:
         return jwt.decode(
@@ -26,9 +69,22 @@ def _decode_token(token: str) -> dict | None:
             audience=Config.SUPABASE_JWT_AUDIENCE,
         )
     except jwt.ExpiredSignatureError:
-        logger.info("JWT expired")
+        logger.info("JWT expired (symmetric)")
+        return None
     except jwt.InvalidTokenError as e:
-        logger.info(f"Invalid JWT: {e}")
+        logger.debug(f"Symmetric verify failed: {e}")
+        return None
+
+
+def _decode_token(token: str) -> dict | None:
+    payload = _decode_asymmetric(token)
+    if payload:
+        return payload
+    payload = _decode_symmetric(token)
+    if payload:
+        return payload
+    if not Config.SUPABASE_JWT_SECRET and not Config.SUPABASE_URL:
+        logger.error("Neither SUPABASE_URL nor SUPABASE_JWT_SECRET is configured")
     return None
 
 
@@ -36,8 +92,6 @@ def _extract_token() -> str:
     auth = request.headers.get('Authorization', '')
     if auth.startswith('Bearer '):
         return auth[7:].strip()
-    # Fallback: query param ONLY for SSE endpoints (EventSource cannot send headers)
-    # Frontend should still use fetch + ReadableStream when possible.
     return request.args.get('access_token', '').strip()
 
 
