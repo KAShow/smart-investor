@@ -27,10 +27,18 @@ class Config:
         if o.strip()
     ]
 
-    # Supabase JWT
+    # Supabase JWT — supports multiple trusted issuers (one per Supabase project)
     SUPABASE_URL = os.getenv('SUPABASE_URL', '')
     SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET', '')
     SUPABASE_JWT_AUDIENCE = os.getenv('SUPABASE_JWT_AUDIENCE', 'authenticated')
+    # Comma-separated list of Supabase project base URLs (e.g. https://abc.supabase.co).
+    # Each project's /auth/v1/.well-known/jwks.json is trusted.
+    # Falls back to [SUPABASE_URL] if unset, for backward compatibility.
+    SUPABASE_TRUSTED_PROJECTS = [
+        u.strip().rstrip('/')
+        for u in os.getenv('SUPABASE_TRUSTED_PROJECTS', os.getenv('SUPABASE_URL', '')).split(',')
+        if u.strip()
+    ]
 
     # Encryption for PII at rest
     FERNET_KEY = os.getenv('FERNET_KEY', '')

@@ -1,11 +1,16 @@
-"""Supabase JWT verification middleware.
+"""Supabase JWT verification middleware (multi-project).
 
-Supports both:
-- New asymmetric JWT signing keys (RS256/ES256) via JWKS endpoint
-- Legacy HS256 with shared secret
+The backend is intentionally NOT bound to a single Supabase project. It accepts
+tokens from any project listed in `SUPABASE_TRUSTED_PROJECTS` (comma-separated
+base URLs). For each token:
 
-Tries asymmetric first (the default for new Supabase projects), falls back
-to HS256 if SUPABASE_JWT_SECRET is set and asymmetric verification fails.
+1. The token's unverified `iss` claim picks which project's JWKS to trust.
+2. Asymmetric verification (RS256/ES256) runs against that project's JWKS.
+3. Symmetric (HS256 + SUPABASE_JWT_SECRET) is tried only if the token's `iss`
+   matches the project that the secret belongs to (legacy single-project mode).
+
+This lets one Smart Investor backend serve users from multiple frontends, each
+with its own Supabase auth project.
 """
 import logging
 from functools import wraps
@@ -17,28 +22,47 @@ from config import Config, is_admin
 
 logger = logging.getLogger(__name__)
 
-_jwks_client: jwt.PyJWKClient | None = None
+
+def _project_to_issuer(base_url: str) -> str:
+    return f"{base_url.rstrip('/')}/auth/v1"
 
 
-def _get_jwks_client() -> jwt.PyJWKClient | None:
-    global _jwks_client
-    if _jwks_client is not None:
-        return _jwks_client
-    if not Config.SUPABASE_URL:
-        return None
-    jwks_url = f"{Config.SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+_TRUSTED_ISSUERS: dict[str, str] = {
+    _project_to_issuer(p): p for p in Config.SUPABASE_TRUSTED_PROJECTS
+}
+_jwks_clients: dict[str, jwt.PyJWKClient] = {}
+
+
+def _jwks_client_for(project_url: str) -> jwt.PyJWKClient | None:
+    if project_url in _jwks_clients:
+        return _jwks_clients[project_url]
+    jwks_url = f"{project_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
     try:
-        _jwks_client = jwt.PyJWKClient(jwks_url, cache_keys=True, lifespan=3600)
-        return _jwks_client
+        client = jwt.PyJWKClient(jwks_url, cache_keys=True, lifespan=3600)
+        _jwks_clients[project_url] = client
+        return client
     except Exception as e:
-        logger.warning(f"Could not init JWKS client: {e}")
+        logger.info(f"Could not init JWKS client for {project_url}: {e}")
         return None
 
 
 def _decode_asymmetric(token: str) -> dict | None:
-    client = _get_jwks_client()
+    try:
+        unverified = jwt.decode(token, options={"verify_signature": False})
+    except Exception as e:
+        logger.info(f"Token unparseable for issuer lookup: {e}")
+        return None
+
+    iss = unverified.get('iss', '')
+    project_url = _TRUSTED_ISSUERS.get(iss)
+    if not project_url:
+        logger.info(f"Token issuer not in trusted list: {iss}")
+        return None
+
+    client = _jwks_client_for(project_url)
     if not client:
         return None
+
     try:
         signing_key = client.get_signing_key_from_jwt(token).key
         return jwt.decode(
@@ -46,6 +70,7 @@ def _decode_asymmetric(token: str) -> dict | None:
             signing_key,
             algorithms=['RS256', 'ES256'],
             audience=Config.SUPABASE_JWT_AUDIENCE,
+            issuer=iss,
         )
     except jwt.ExpiredSignatureError:
         logger.info("JWT expired (asymmetric)")
@@ -59,6 +84,7 @@ def _decode_asymmetric(token: str) -> dict | None:
 
 
 def _decode_symmetric(token: str) -> dict | None:
+    """Legacy HS256 fallback. Only useful for projects still on legacy JWT secret."""
     if not Config.SUPABASE_JWT_SECRET:
         return None
     try:
@@ -83,8 +109,8 @@ def _decode_token(token: str) -> dict | None:
     payload = _decode_symmetric(token)
     if payload:
         return payload
-    if not Config.SUPABASE_JWT_SECRET and not Config.SUPABASE_URL:
-        logger.error("Neither SUPABASE_URL nor SUPABASE_JWT_SECRET is configured")
+    if not Config.SUPABASE_TRUSTED_PROJECTS and not Config.SUPABASE_JWT_SECRET:
+        logger.error("No SUPABASE_TRUSTED_PROJECTS or SUPABASE_JWT_SECRET configured")
     try:
         header = jwt.get_unverified_header(token)
         claims = jwt.decode(token, options={"verify_signature": False})
@@ -116,6 +142,7 @@ def require_auth(fn):
             return jsonify({'error': 'invalid_token', 'message': 'مفتاح المصادقة غير صالح أو منتهي'}), 401
         g.user_id = payload.get('sub', '')
         g.email = payload.get('email', '')
+        g.iss = payload.get('iss', '')
         g.is_admin = is_admin(g.user_id)
         return fn(*args, **kwargs)
 

@@ -11,6 +11,8 @@ services:
         sync: false
       - key: SUPABASE_URL
         sync: false
+      - key: SUPABASE_TRUSTED_PROJECTS
+        sync: false
       - key: SUPABASE_JWT_SECRET
         sync: false
       - key: FERNET_KEY
