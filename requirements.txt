@@ -26,8 +26,9 @@ pytrends>=4.9.0
 ddgs>=6.3.5
 duckduckgo-search>=6.2.13
 
-# Reporting
-weasyprint==62.3
+# Reporting — 65+ supports Python 3.14 (older versions fail with
+# AttributeError: 'super' object has no attribute 'transform' via cssselect2)
+weasyprint>=65.0,<67.0
 
 # Env loading
 python-dotenv==1.0.1
