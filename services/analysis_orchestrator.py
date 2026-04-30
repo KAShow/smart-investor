@@ -72,6 +72,27 @@ def stream_analysis(*, sector: str, budget: str, notes: str, user_id: str,
         idea += f"\n\nملاحظات إضافية: {notes_clean}"
 
     market_context = _bahrain_service.build_market_context(sector=sector)
+
+    # Baseline assumptions block — single source of truth that ALL agents must
+    # use, preventing each agent from inventing its own TAM / company count /
+    # transaction value. See agents/_quality_rules.py rule #4.
+    market_context += (
+        f"\n\n══ الفرضيات الموحَّدة لهذا التحليل ══\n"
+        f"كل الوكلاء يجب أن يلتزموا بهذه الأرقام كأساس مشترك. لا تخترع أرقاماً موازية.\n\n"
+        f"- **حجم سوق البحرين الإجمالي**: [DATA] ~1.59 مليون نسمة (البنك الدولي 2024)\n"
+        f"- **عدد الشركات النشطة في القطاع**: [UNKNOWN] — Sijilat لا يفصل بدقة. "
+        f"إذا اضطُررت لتقدير، استخدم نطاقاً واسعاً ([ESTIMATE] 100-500 شركة) ووسمه صراحةً.\n"
+        f"- **متوسط قيمة عقد/صفقة في القطاع**: [UNKNOWN] — لا توجد بيانات. "
+        f"إذا احتجت رقماً للتقدير المالي، استخدم نطاق ([ASSUMPTION] 2,000-20,000 د.ب) "
+        f"واذكر صراحةً أنه افتراض يحتاج تحقق ميداني.\n"
+        f"- **TAM (الحجم الإجمالي للسوق)**: يُحسَب فقط بناءً على الأرقام أعاله، "
+        f"ولا يجب استخدام GDP القطاعي الشامل كبديل. كل وكيل يستخدم نفس صيغة الحساب: "
+        f"عدد الشركات × متوسط قيمة العقد × التكرار السنوي.\n"
+        f"- **نمو القطاع**: استخدم فقط الرقم القطاعي المحدد إن توفر. "
+        f"ممنوع استخدام نمو 'المعلومات والاتصالات' الكلي كدليل لقطاع 'الإعلام والتسويق'، "
+        f"أو نمو 'تجارة الجملة' كدليل لقطاع فرعي معين.\n"
+    )
+
     if budget:
         try:
             budget_int = int(budget)

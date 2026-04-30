@@ -206,6 +206,35 @@ def _render_verdict(verdict: dict) -> str:
                 parts.append(f'<p><em>الحل:</em> {_esc(c["resolution"])}</p>')
             parts.append('</div>')
 
+    inconsistencies = verdict.get('numerical_inconsistencies') or []
+    if inconsistencies:
+        parts.append('<h4>تناقضات رقمية بين الوكلاء — تم حسمها</h4>')
+        for inc in inconsistencies:
+            if not isinstance(inc, dict):
+                continue
+            parts.append(
+                f'<div class="conflict">'
+                f'<strong>{_esc(inc.get("field", "—"))}</strong>'
+                f'<p><em>القيم المُبلَّغة:</em> {_esc(inc.get("values_reported", ""))}</p>'
+                f'<p><em>الحسم:</em> {_esc(inc.get("resolution", ""))}</p>'
+                f'<p><em>القيمة المعتمدة:</em> <strong>{_esc(inc.get("adopted_value", ""))}</strong></p>'
+                f'</div>'
+            )
+
+    misleading = verdict.get('misleading_citations') or []
+    if misleading:
+        parts.append('<h4>⚠️ استشهادات مضللة (تم رصدها للشفافية)</h4>')
+        for m in misleading:
+            if not isinstance(m, dict):
+                continue
+            parts.append(
+                f'<div class="conflict">'
+                f'<strong>{_esc(m.get("agent", "—"))}</strong>'
+                f'<p>«{_esc(m.get("citation", ""))}»</p>'
+                f'<p><em>المشكلة:</em> {_esc(m.get("issue", ""))}</p>'
+                f'</div>'
+            )
+
     if verdict.get('advisor_opinion'):
         parts.append(f'<blockquote>{_esc(verdict["advisor_opinion"])}</blockquote>')
 

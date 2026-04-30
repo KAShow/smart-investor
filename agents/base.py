@@ -208,8 +208,11 @@ def create_completion_sync(provider: str, model: str, api_key: str, messages: li
 
 class BaseAgent:
     def __init__(self, model: str, system_prompt: str):
+        from ._quality_rules import QUALITY_RULES_AR
         self.model = model
-        self.system_prompt = system_prompt
+        # Quality rules are injected before each agent's specialized prompt so
+        # they apply to every analysis without per-agent edits.
+        self.system_prompt = QUALITY_RULES_AR + "\n\n---\n\n" + system_prompt
 
     @retry(
         stop=stop_after_attempt(2),
