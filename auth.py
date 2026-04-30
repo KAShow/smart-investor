@@ -51,10 +51,10 @@ def _decode_asymmetric(token: str) -> dict | None:
         logger.info("JWT expired (asymmetric)")
         return None
     except jwt.InvalidTokenError as e:
-        logger.debug(f"Asymmetric verify failed: {e}")
+        logger.info(f"Asymmetric verify failed: {e}")
         return None
     except Exception as e:
-        logger.debug(f"JWKS lookup failed: {e}")
+        logger.info(f"JWKS lookup failed: {e}")
         return None
 
 
@@ -72,7 +72,7 @@ def _decode_symmetric(token: str) -> dict | None:
         logger.info("JWT expired (symmetric)")
         return None
     except jwt.InvalidTokenError as e:
-        logger.debug(f"Symmetric verify failed: {e}")
+        logger.info(f"Symmetric verify failed: {e}")
         return None
 
 
@@ -85,6 +85,16 @@ def _decode_token(token: str) -> dict | None:
         return payload
     if not Config.SUPABASE_JWT_SECRET and not Config.SUPABASE_URL:
         logger.error("Neither SUPABASE_URL nor SUPABASE_JWT_SECRET is configured")
+    try:
+        header = jwt.get_unverified_header(token)
+        claims = jwt.decode(token, options={"verify_signature": False})
+        sub = claims.get('sub', '') or ''
+        logger.info(
+            f"Token rejected. alg={header.get('alg')} kid={header.get('kid')} "
+            f"iss={claims.get('iss')} aud={claims.get('aud')} sub={sub[:8]}..."
+        )
+    except Exception as e:
+        logger.info(f"Token unparseable: {e}")
     return None
 
 
