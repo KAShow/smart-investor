@@ -114,10 +114,11 @@ def export_pdf(analysis_id):
             mimetype='application/pdf',
             headers={'Content-Disposition': f'attachment; filename={filename}'},
         )
+    html_filename = filename.replace('.pdf', '.html') if filename.endswith('.pdf') else f'{filename}.html'
     return Response(
         html_fallback,
         mimetype='text/html',
-        headers={'Content-Disposition': f'inline; filename={filename}.html'},
+        headers={'Content-Disposition': f'attachment; filename={html_filename}'},
     )
 
 
