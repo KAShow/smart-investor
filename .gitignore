@@ -38,6 +38,9 @@ _test_*.txt
 
 # Screenshots and captured pages
 screencapture-*.png
+
+# Test script outputs
+test_outputs/
 *.png
 
 # Saved web pages (keep checked-in source images only)
