@@ -54,7 +54,7 @@ class Config:
 
     # Rate limiting (Redis backed)
     REDIS_URL = os.getenv('REDIS_URL', 'memory://')
-    RATE_LIMIT_PER_USER_DAY = os.getenv('RATE_LIMIT_PER_USER_DAY', '5/day')
+    RATE_LIMIT_PER_USER_DAY = os.getenv('RATE_LIMIT_PER_USER_DAY', '12/day')
     RATE_LIMIT_PER_IP_MINUTE = os.getenv('RATE_LIMIT_PER_IP_MINUTE', '30/minute')
 
     # Logging

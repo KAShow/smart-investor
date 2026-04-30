@@ -4,6 +4,7 @@ import logging
 from flask import Blueprint, Response, g, jsonify, request
 
 from auth import require_auth
+from config import Config
 from database import (delete_analysis, get_analysis, get_analysis_by_token,
                       get_dashboard_stats, list_analyses_for_user, rate_analysis)
 from extensions import limiter
@@ -24,7 +25,8 @@ def health():
 
 @bp.route('/analyze', methods=['POST'])
 @require_auth
-@limiter.limit('5/day', key_func=lambda: f'user:{g.get("user_id", "anon")}')
+@limiter.limit(lambda: Config.RATE_LIMIT_PER_USER_DAY,
+               key_func=lambda: f'user:{g.get("user_id", "anon")}')
 def analyze():
     """SSE streaming endpoint. Body: { sector, budget?, notes?, requester_* }"""
     data = request.get_json(silent=True) or {}
