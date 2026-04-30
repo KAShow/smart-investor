@@ -30,5 +30,8 @@ duckduckgo-search>=6.2.13
 # AttributeError: 'super' object has no attribute 'transform' via cssselect2)
 weasyprint>=65.0,<67.0
 
+# Postgres driver (used when DATABASE_URL is set; SQLite fallback otherwise)
+psycopg[binary]>=3.2.0
+
 # Env loading
 python-dotenv==1.0.1

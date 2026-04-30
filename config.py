@@ -12,6 +12,10 @@ class Config:
     PROJECT_ROOT = ROOT_DIR
     DB_PATH = ROOT_DIR / "analyses.db"
 
+    # If set, persistence layer uses Postgres (Supabase pooler URL).
+    # If empty, falls back to SQLite at DB_PATH (local dev).
+    DATABASE_URL = os.getenv('DATABASE_URL', '')
+
     # Flask
     DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     PORT = int(os.getenv('PORT', 5000))
